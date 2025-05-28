@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Logistika{% endblock %}
+{% block content %}
+
+               <div class="blog_section layout_padding margin_bottom90">
+                  
+                  <div class="container">
+                     <div class="row">
+                        <div class="col-sm-12">
+                           <h1 class="blog_taital">{{logist.name}}</h1>
+                        </div>
+                     </div>
+
+                     <div class="banner_section layout_padding">
+                        <div class="container-fluid">
+                           <div id="main_slider" class="carousel slide" data-ride="carousel">
+                              <div class="carousel-inner">
+                                 <div class="carousel-item active">
+                                    <a href="{{logist.img.url}}" data-lightbox="image-1"> <img src="{{logist.img.url}}"></a>
+                                 </div>
+                                 {% if images %}
+                                 {% for img in images %}
+                                 <h1>{{img.url}}</h1>
+                                 {% endfor %}
+                                 <div class="carousel-item">
+                                    <a href="{{img.url}}" data-lightbox="image-1"><img src="{{img.url}}"></a>
+                                 </div>
+                                 {% endif %}
+                              </div>
+                              <a class="carousel-control-prev" href="#main_slider" role="button" data-slide="prev">
+                              <img src="{% static 'images/arrow-left.png'%}">
+                              </a>
+                              <a class="carousel-control-next" href="#main_slider" role="button" data-slide="next">
+                              <img src="{% static 'images/arrow-right.png'%}">
+                              </a>
+                           </div>
+                        </div>
+                     </div>
+                     
+                     <div class="blog_section_2 layout_padding">
+                        <div class="row">
+                           <div class="col-md-6">
+                              <p ><strong>Salgysy:</strong> {{logist.text}}</p>
+                              <p ><strong>Kategoriýasy:</strong> {{logist.category.name}}</p>
+                              <p >Nirden: {{logist.nirden}}</p>
+                              <p >Nirä: {{logist.where}}</p>
+                              <p >{{logist.text}}</p>
+                              <p >{{logist.price}} TMT</p>
+                           </div>
+                           <div class="col-md-6">
+                              <div class="blog_img" ><a href="{{logist.img.url}}" data-lightbox="image-1"><img src="{{logist.img.url}}"></a></div>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.1/js/lightbox.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.1/css/lightbox.min.css">
+            {% endblock %}

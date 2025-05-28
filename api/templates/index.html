@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Seýir{% endblock %}
+{% block content %}
+<style>
+
+@media (max-width: 576px) {
+    .carousel-item {
+        height: 250px;
+    }
+    .carousel-item img {
+        object-fit: fill; /* Show the full image without cropping */
+    }
+}
+</style>
+
+    <div class="container">
+      <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel">
+         
+         <div class="carousel-inner">
+            {% for image in carousel %}
+                <div class="carousel-item  {% if forloop.first %}active{% endif %}">
+                  <img class="d-block w-100" src="{{image.img.url}}" style="height: 500px;" alt="First slide">
+                </div>
+            {% endfor %}
+         </div>
+         <a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
+           <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+           <span class="sr-only">Yza</span>
+         </a>
+         <a class="carousel-control-next" href="#carouselExampleIndicators" role="button" data-slide="next">
+           <span class="carousel-control-next-icon" aria-hidden="true"></span>
+           <span class="sr-only">Öňe</span>
+         </a>
+       </div>
+    </div>
+
+<div class="vagetables_section layout_padding">
+   <div class="container">
+      <div class="row">
+         <div class="col-sm-12">
+            <h1 class="vagetables_taital">Habarlar</h1>
+            <p class="vagetables_text">Passages of Lorem Ipsum available, but the majority have suffered alteration </p>
+         </div>
+      </div>
+      <div class="courses_section_2">
+         <div class="row">
+            {% for n in news %}
+            <div class="col-md-3">
+               <div class="hover01 column">
+                  <figure><img src="{{n.img.url}}" ></figure>
+               </div>
+               <h3 class="harshal_text">{{n.name}}</h3>
+               <h3 class="rate_text">{{n.text | truncatechars:15}}</h3>
+               <div class="read_bt_1"><a href="{% url 'news' n.pk %}">Giňişleýin</a></div>
+            </div>
+            {% endfor %}
+         </div>
+      </div>   
+   </div>
+</div>
+
+<div class="vagetables_section layout_padding">
+   <div class="container">
+      <div class="row">
+         <div class="col-sm-12">
+            <h1 class="vagetables_taital">Logistika</h1>
+            <p class="vagetables_text">Passages of Lorem Ipsum available, but the majority have suffered alteration </p>
+         </div>
+      </div>
+      <div class="courses_section_2">
+         <div class="row">
+            {% for l in logist %}
+            <div class="col-md-3">
+               <div class="hover01 column">
+                  <figure><img src="{{l.img.url}}"></figure>
+               </div>
+               <h3 class="harshal_text">{{l.name}}</h3>
+               <h3 class="rate_text">{{l.text | truncatechars:15}}</h3>
+               <div class="read_bt_1"><a href="{% url 'logist' l.pk %}">Giňişleýin</a></div>
+            </div>
+            {% endfor %}
+         </div>
+      </div>     
+   </div>
+</div>
+
+<div class="vagetables_section layout_padding">
+   <div class="container">
+      <div class="row">
+         <div class="col-sm-12">
+            <h1 class="vagetables_taital">Awtoulaglar</h1>
+            <p class="vagetables_text">Passages of Lorem Ipsum available, but the majority have suffered alteration </p>
+         </div>
+      </div>
+      <div class="courses_section_2">
+         <div class="row">
+            {% for c in car %}
+            <div class="col-md-3">
+               <div class="hover01 column">
+                  <figure><img src="{{c.img.url}}"></figure>
+               </div>
+               <h3 class="harshal_text">{{c.name}}</h3>
+               <h3 class="rate_text">{{c.text | truncatechars:15}}</h3>
+               <div class="read_bt_1"><a href="{% url 'car' c.pk %}">Giňişleýin</a></div>
+            </div>
+            {% endfor %}
+         </div>
+      </div>     
+   </div>
+</div>
+
+<div class="vagetables_section layout_padding">
+   <div class="container">
+      <div class="row">
+         <div class="col-sm-12">
+            <h1 class="vagetables_taital">Hyzmatlar</h1>
+            <p class="vagetables_text">Passages of Lorem Ipsum available, but the majority have suffered alteration </p>
+         </div>
+      </div>
+      <div class="courses_section_2">
+         <div class="row">
+            {% for s in service %}
+            <div class="col-md-3">
+               <div class="hover01 column">
+                  <figure><img src="{{s.img.url}}"></figure>
+               </div>
+               <h3 class="harshal_text">{{s.name}}</h3>
+               <h3 class="rate_text">{{s.text | truncatechars:15}}</h3>
+               <div class="read_bt_1"><a href="{% url 'service' s.pk %}">Giňişleýin</a></div>
+            </div>
+            {% endfor %}
+         </div>
+      </div>     
+   </div>
+</div>
+
+<div class="vagetables_section layout_padding">
+   <div class="container">
+      <div class="row">
+         <div class="col-sm-12">
+            <h1 class="vagetables_taital">Elin hyzmatlar</h1>
+            <p class="vagetables_text">Passages of Lorem Ipsum available, but the majority have suffered alteration </p>
+         </div>
+      </div>
+      <div class="courses_section_2">
+         <div class="row">
+            {% for e in elin %}
+            <div class="col-md-3">
+               <div class="hover01 column">
+                  <figure><img src="{{e.img.url}}"></figure>
+               </div>
+               <h3 class="harshal_text">{{e.name}}</h3>
+               <h3 class="rate_text">{{e.text | truncatechars:15}}</h3>
+               <div class="read_bt_1"><a href="{% url 'elin' e.pk %}">Giňişleýin</a></div>
+            </div>
+            {% endfor %}
+         </div>
+      </div>      
+   </div>
+</div>
+
+<div class="vagetables_section layout_padding">
+   <div class="container">
+      <div class="row">
+         <div class="col-sm-12">
+            <h1 class="vagetables_taital">Beýlekiler</h1>
+            <p class="vagetables_text">Passages of Lorem Ipsum available, but the majority have suffered alteration </p>
+         </div>
+      </div>
+      <div class="courses_section_2">
+         <div class="row">
+            {% for o in other %}
+            <div class="col-md-3">
+               <div class="hover01 column">
+                  <figure><img src="{{o.img.url}}"></figure>
+               </div>
+               <h3 class="harshal_text">{{o.name}}</h3>
+               <h3 class="rate_text">{{o.text | truncatechars:15}}</h3>
+               <div class="read_bt_1"><a href="{% url 'other' o.pk %}">Giňişleýin</a></div>
+            </div>
+            {% endfor %}
+         </div>
+      </div>     
+   </div>
+</div>
+
+<div class="testimonial_section layout_padding" style="margin-top: 30px;">
+   <div class="container">
+      <div class="row">
+         <div class="col-md-12">
+            <h1 class="testimonial_taital">Biz barada</h1>
+         </div>
+      </div>
+      <div class="testimonial_section_2">
+         <div class="row">
+            <div class="col-md-12">
+               <div class="testimonial_box">
+                  <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel">
+                     <ol class="carousel-indicators">
+                        <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
+                        <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
+                        <li data-target="#carouselExampleIndicators" data-slide-to="2"></li>
+                     </ol>
+                     <div class="carousel-inner">
+                        <div class="carousel-item active">
+                           <p class="testimonial_text">Onsectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolor</p>
+                        </div>
+                        <div class="carousel-item">
+                           <p class="testimonial_text">Onsectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolor</p>
+                        </div>
+                        <div class="carousel-item">
+                           <p class="testimonial_text">Onsectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolor</p>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               <div class="client_main">
+                  <div class="client_left">
+                     <div class="client_img"><img src="{% static 'images/logo.png'%}" width="150"></div>
+                  </div>
+                  <div class="client_right">
+                     <h4 class="client_name">Seýir</h4>
+                     <p class="customer_text">Logistika</p>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+</div>
+{% endblock %}

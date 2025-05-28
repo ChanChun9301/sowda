@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Logistika{% endblock %}
+{% block content %}
+ <!-- galeryanyn dowamyny goyjak bolsan -->
+ <!-- <div style="display:none">
+   <a data-fancybox="gallery" href="https://lipsum.app/id/61/1600x1200">
+     <img src="https://lipsum.app/id/61/120x80" />
+   </a>
+   <a data-fancybox="gallery" href="https://lipsum.app/id/62/1600x1200">
+     <img src="https://lipsum.app/id/62/120x80" />
+   </a>
+   <a data-fancybox="gallery" href="https://lipsum.app/id/63/1600x1200">
+     <img src="https://lipsum.app/id/63/120x80" />
+   </a>
+ </div> -->
+               <div class="blog_section layout_padding margin_bottom90">
+                  
+                  <div class="container">
+                     <div class="row">
+                        <div class="col-sm-12">
+                           <h1 class="blog_taital">{{news.name}}</h1>
+                        </div>
+                     </div>
+                     <div class="blog_section_2 layout_padding">
+                        <div class="row">
+                           <div class="col-md-6">
+                              <p > {{news.text|striptags}}</p>
+                              <p > {{news.created|date:'d.m.Y'}}</p>
+                              <p >Çeşme: {{news.author}}</p>
+                           </div>
+                           <div class="col-md-6">
+                              <div class="blog_img" >
+                                 <a data-fancybox="gallery" href="{{news.img.url}}">
+                                    <img src="{{news.img.url}}" width="200" height="150" alt="" />
+                                  </a></div>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.1/js/lightbox.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.1/css/lightbox.min.css">
+            {% endblock %}

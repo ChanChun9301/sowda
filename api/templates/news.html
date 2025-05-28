@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Habarlar{% endblock %}
+{% block content %}
+            <div class="vagetables_section layout_padding margin_bottom90">
+               <div class="container">
+                  <div class="row">
+                     <div class="col-sm-12">
+                        <h1 class="vagetables_taital">Habarlar</h1>
+                        <p class="vagetables_text">Ýurdumyzdaky we dünýädäki täze habarlar.</p>
+                     </div>
+                  </div>
+                  <div class="courses_section_2">
+                     <div class="row">
+                        {% for n in news %}
+                        <div class="col-md-4" style="margin: 0px;border-radius: 15px; font-size: 12px;">
+                           <div class="hover01 column">
+                              <figure><img src="{{n.img.url}}"></figure>
+                           </div>
+                           <h3 class="harshal_text">{{n.name}}</h3>
+                           <h3 class="rate_text">{{n.text|striptags|truncatechars:50 }}</h3>
+                           <div class="read_bt_1"><a href="{% url 'news' n.pk %}">Giňişleýin...</a></div>
+                        </div>
+                        {% endfor %}
+                     </div>
+                  </div>
+               </div>
+            </div>
+            {% endblock %}

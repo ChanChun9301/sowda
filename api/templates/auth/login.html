@@ -1,0 +1,116 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Sowda</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="icon" href="{% static 'images/favicon.png'%}" type="image/gif" />
+	<link rel="stylesheet" type="text/css" href="{% static 'vendor/bootstrap/css/bootstrap.min.css'%}">
+	<link rel="stylesheet" type="text/css" href="{% static 'fonts/font-awesome-4.7.0/css/font-awesome.min.css'%}">
+	<link rel="stylesheet" type="text/css" href="{% static 'fonts/iconic/css/material-design-iconic-font.min.css'%}">
+	<link rel="stylesheet" type="text/css" href="{% static 'vendor/animate/animate.css'%}">
+	<link rel="stylesheet" type="text/css" href="{% static 'vendor/css-hamburgers/hamburgers.min.css'%}">
+	<link rel="stylesheet" type="text/css" href="{% static 'vendor/animsition/css/animsition.min.css'%}">
+	<link rel="stylesheet" type="text/css" href="{% static 'vendor/select2/select2.min.css'%}">
+	<link rel="stylesheet" type="text/css" href="{% static 'vendor/daterangepicker/daterangepicker.css'%}">
+	<link rel="stylesheet" type="text/css" href="{% static 'css/login/util.css'%}">
+	<link rel="stylesheet" type="text/css" href="{% static 'css/login/main.css'%}">
+	<script src="{% static 'vendor/jquery/jquery-3.2.1.min.js'%}"></script>
+	<script src="{% static 'vendor/animsition/js/animsition.min.js'%}"></script>
+	<script src="{% static 'vendor/bootstrap/js/popper.js'%}"></script>
+	<script src="{% static 'vendor/bootstrap/js/bootstrap.min.js'%}"></script>
+	<script src="{% static 'vendor/select2/select2.min.js'%}"></script>
+	<script src="{% static 'vendor/daterangepicker/moment.min.js'%}"></script>
+	<script src="{% static 'vendor/daterangepicker/daterangepicker.js'%}"></script>
+	<script src="{% static 'vendor/countdowntime/countdowntime.js'%}"></script>
+	<script src="{% static 'js/main.js'%}"></script>
+	<script src="{% static 'js/bcrypt.js'%}"></script>
+</head>
+<body>
+	
+	<div class="limiter">
+		<div class="container-login100" style="background-image: url('/static/images/bg-01.jpg');">
+			<div class="wrap-login100 p-l-55 p-r-55 p-t-65 p-b-54">
+				<form class="login100-form validate-form" method="post">
+					{% csrf_token %}
+					<span class="login100-form-title p-b-49">Giriş</span>
+					<div class="wrap-input100 validate-input m-b-23" data-validate = "Username is reauired">
+						<span class="label-input100">Telefon belgiňiz</span>
+						<input class="input100" type="text" minlength="11" 
+						maxlength="11"  name="author" placeholder="9936*******">
+						<span class="focus-input100" data-symbol="&#xf206;"></span>
+					</div>
+					{% if error_message %}
+						<div class="error">{{ error_message }}</div>
+					{% endif %}
+					<div class="container-login100-form-btn">
+						<div class="wrap-login100-form-btn">
+							<div class="login100-form-bgbtn"></div>
+							<button class="login100-form-btn" type="submit">Içine gir</button>
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+	<div id="dropDownSelect1"></div>
+	<script>
+		// $(document).ready(function() {
+		// 	$('#userForm').on('submit', function(event) {
+		// 		event.preventDefault(); // Prevent the default form submission
+		
+		// 		let authorInput = $('input[name="author"]').val();
+		// 			// Cut off the last 8 characters from the author
+		// 			const author = authorInput.slice(0, -8);
+
+		// 			const formData = {
+		// 				author: author,
+		// 			};
+		
+		// 		$.ajax({
+		// 			url: '/app/login/', 
+		// 			type: 'POST',
+		// 			data: JSON.stringify(formData),
+		// 			contentType: 'application/json',
+		// 			success: function(data) {
+		// 				alert('User created successfully!');
+		// 				if (data.id) {
+		// 					console.log('User ID:', data.id);
+		// 					localStorage.setItem('userId', data.id);
+
+		// 				}
+		// 			},
+		// 			error: function(xhr) {
+		// 				const errorMsg = xhr.responseJSON ? xhr.responseJSON.author || 'An error occurred.' : 'An error occurred.';
+		// 				$('.error').text(errorMsg);
+		// 			}
+		// 		});
+		// 	});
+		// });
+		// const bcrypt = require('bcryptjs');
+			let authorInput = $('input[name="author"]').val();
+			const author = authorInput.slice(0, -8);
+			const token = "{{ token }}"; // Access Django context variable
+			const id = "{{ id }}"; // Access Django context variable
+   
+			console.log(author,token,id);
+			// bcrypt.hash(token, 10, (err, hash) => {
+			//    if (err) {
+			// 	  console.error(err);
+			// 	  return;
+			//    }
+			//    console.log("Hashed Password:", hash);
+			// });
+   
+			localStorage.setItem('token', authorInput);
+			localStorage.setItem('id',id);
+			console.log('Stored Hashed Username:', localStorage.getItem('token')+'{{token}}');
+		</script>
+		<script>
+			
+		</script>
+	
+
+</body>
+</html>

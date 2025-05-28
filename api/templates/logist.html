@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Logistika{% endblock %}
+{% block content %}
+            <div class="vagetables_section layout_padding margin_bottom90">
+               <div class="container">
+                  <div class="row">
+                     <div class="col-sm-12">
+                        <h1 class="vagetables_taital">Logistika</h1>
+                        <p class="vagetables_text">Passages of Lorem Ipsum available, but the majority have suffered alteration </p>
+                     </div>
+                  </div>
+                  <div class="courses_section_2">
+                     <div class="row">
+                        {% for l in logist %}
+            <div class="col-md-3">
+               <div class="hover01 column">
+                  <figure><img src="{{l.img.url}}"></figure>
+               </div>
+               <h3 class="harshal_text">{{l.name}}</h3>
+               <h3 class="rate_text">{{l.text | truncatechars:15}}</h3>
+               <div class="read_bt_1"><a href="{% url 'logist' l.pk %}">Giňişleýin</a></div>
+            </div>
+            {% endfor %}
+                     </div>
+                  </div>
+               </div>
+            </div>
+            {% endblock %}

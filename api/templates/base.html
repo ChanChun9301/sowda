@@ -1,0 +1,153 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+   <head>
+      <!-- basic -->
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="viewport" content="initial-scale=1, maximum-scale=1">
+      <title>{% block title %}{% endblock %}</title>
+      <meta name="keywords" content="">
+      <meta name="description" content="">
+      <meta name="author" content="">  
+      <link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap.min.css'%}">
+      <link rel="stylesheet" type="text/css" href="{% static 'css/style.css'%}">
+      <link rel="stylesheet" href="{% static 'css/responsive.css'%}">
+      <link rel="icon" href="{% static 'images/favicon.png'%}" type="image/gif" />
+      <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,500;0,600;0,800;1,400&family=Sen:wght@400;700;800&display=swap" rel="stylesheet">
+      <link rel="stylesheet" href="{% static 'css/jquery.mCustomScrollbar.min.css'%}">
+      <link rel="stylesheet" href="{% static 'css/font-awesome.min.css'%}">
+      <script src="{% static 'js/bcrypt.js'%}"></script>
+   </head>
+   <body>
+      <div class="header_section">
+         <div class="container">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+               <a class="navbar-brand"href="index.html"><img src="{% static 'images/nav_logo_dark.png'%}" width  ="100px"></a>
+               <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon"></span>
+               </button>
+               <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                  <ul class="navbar-nav ml-auto">
+                     <li class="nav-item">
+                        <a class="nav-link" href="{% url 'index'%}">Baş sahypa</a>
+                     </li>
+                     <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logist'%}">Logistika</a>
+                     </li>
+                     <li class="nav-item">
+                        <a class="nav-link" href="{% url 'car'%}">Awtoulaglar</a>
+                     </li>
+                     <li class="nav-item">
+                        <a class="nav-link" href="{% url 'news'%}">Habarlar</a>
+                     </li>
+                     <li class="nav-item dropdown">
+                       <a class=" nav-link dropdown-toggle" data-toggle="dropdown" href="#">Beýlekiler<span class="caret"></span></a>
+                       <ul class="dropdown-menu">
+                         <a class="nav-link" href="{% url 'other'%}">Beýlekiler</a>
+                         <a class="nav-link" href="{% url 'service'%}">Hyzmatlar</a>
+                         <a class="nav-link" href="{% url 'elin'%}">Elin</a>
+                       </ul>
+                     </li>
+                     {% if token != False %}
+                     <li class="nav-item dropdown">
+                        <a class=" nav-link dropdown-toggle" data-toggle="dropdown" href="#"><span class="user"></span></a>
+                        <ul class="dropdown-menu" >
+                           <a class="nav-link" href="{% url 'news'%}"><i class="fa fa-plus-circle " aria-hidden="true"></i> Bildiriş goş</a>
+                        </ul>
+                      </li>
+                      {% else%}
+                      <li class="nav-item">
+                         <a class="nav-link" href="{% url 'login_in'%}"><i class="fa fa-sign-in " aria-hidden="true"></i> Içine gir</a>
+                        </li>
+                        {% endif %}
+                  </ul>
+               </div>
+            </nav>
+         </div>
+      </div>
+      <div class="container-fluid">
+         <div class="layout_border">
+            <!-- banner section start --> 
+
+            {% block content %}{% endblock %}
+           
+            <!-- testimonial section end -->
+            <!-- layout_border end -->
+         </div>
+      </div>
+      <div class="footer_section layout_padding">
+         <div class="container">
+            <div class="row">
+               <div class="col-lg-6 col-sm-6">
+                  <h3 class="footer_text">{{token}}{{id}} Peýdaly URL-lar</h3>
+                  <div class="footer_menu">
+                     <ul>
+                        <li class="active"><a href="{% url 'index'%}"><span class="angle_icon active"><i class="fa fa-arrow-right" aria-hidden="true"></i></span> Baş sahypa</a></li>
+                        <li><a href="{% url 'logist'%}"><span class="angle_icon"></span>  Logistika</a></li>
+                        <li><a href="{% url 'car'%}"><span class="angle_icon"></span> Awtoulaglar</a></li>
+                        <li><a href="{% url 'service'%}"><span class="angle_icon"></span> Hyzmatlar</a></li>
+                        <li><a href="{% url 'elin'%}"><span class="angle_icon"></span> Elin</a></li>
+                        <li><a href="{% url 'other'%}"><span class="angle_icon"></span>  Beýlekiler</a></li>
+                        <li><a href="{% url 'news'%}"><span class="angle_icon"></span> Habarlar</a></li>
+                       
+                        <li><a href="{% url 'news'%}"><span class="angle_icon"></span> Bildiriş goşmak</a></li>
+                     </ul>
+                  </div>
+               </div>
+               <div class="col-lg-6  col-sm-6">
+                  <h3 class="footer_text">Salgymyz</h3>
+                  <div class="location_text">
+                     <ul>
+                        <li>
+                           <a href="#">
+                           <span class="padding_left_10"><i class="fa fa-map-marker" aria-hidden="true"></i></span>It is a long established fact that a<br> reader will be distracted</a>
+                        </li>
+                        <li>
+                           <a href="#">
+                           <span class="padding_left_10"><i class="fa fa-phone" aria-hidden="true"></i></span>(+71) 1234567890<br>(+71) 1234567890
+                           </a>
+                        </li>
+                        <li>
+                           <a href="#">
+                           <span class="padding_left_10"><i class="fa fa-envelope" aria-hidden="true"></i></span>demo@gmail.com
+                           </a>
+                        </li>
+                     </ul>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+
+      <div class="copyright_section">
+         <div class="container">
+            <p class="copyright_text">2024 Ähli hukular goralan. Design by <a href="https://html.design">Seýir - Logistika</a></p>
+         </div>
+      </div>
+      
+      <script>
+         const token = "{{ token }}";
+         const id = "{{ id }}";
+         console.log(token,id);
+
+         // bcrypt.hash(token, 10, (err, hash) => {
+         //    if (err) {
+         //       console.error(err);
+         //       return;
+         //    }
+         //    console.log("Hashed Password:", hash);
+
+         // });
+ 
+         console.log('Stored Hashed Username:', localStorage.getItem('token')+'{{token}}');
+     </script>
+ 
+      <script src="{% static 'js/jquery.min.js'%}"></script>
+      <script src="{% static 'js/popper.min.js'%}"></script>
+      <script src="{% static 'js/bootstrap.bundle.min.js'%}"></script>
+      <script src="{% static 'js/jquery-3.0.0.min.js'%}"></script>
+      <script src="{% static 'js/plugin.js'%}"></script>
+   </body>
+</html>
