@@ -289,8 +289,9 @@ admin.site.register(TopProducts, TopProductsAdmin)
 class CarouselAdmin(admin.ModelAdmin):
     list_display = ('name','pk', image_preview)
     list_display_links = ('name',)
+    fields = ["img",'name']
     list_per_page = 20
-    readonly_fields = ['img']
+    # readonly_fields = ['img']
 
 admin.site.register(CarouselImage, CarouselAdmin)
 
@@ -321,6 +322,7 @@ class CarCategoryInline(admin.TabularInline):
 @admin.register(CarCategory)
 class CarCategoryAdmin(admin.ModelAdmin):
     list_display = ('name', 'parent')
+    # fields = '__all__'
     search_fields = ('name',)
     inlines = [CarCategoryInline]
 

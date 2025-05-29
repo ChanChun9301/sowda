@@ -1,6 +1,7 @@
 from django.urls import re_path,path
 from .views_serializers import *
 from .views import *
+from .functions import confirm_sms
 from django.contrib.auth.views import LogoutView
 
 urlpatterns = [
@@ -23,6 +24,7 @@ urlpatterns = [
 
     path('register/', UserCreate.as_view(), name='userprod-list'),
     path('login/', UserLoginView.as_view(), name='user-login'),
+    path('confirm-sms/', confirm_sms, name='confirm-sms'),
     path('logout/', UserLogoutView.as_view(), name='user-logout'),
 
     re_path(r'^user-logout/$',UserLogoutView.as_view(), name='logout'),

@@ -256,6 +256,8 @@ class LogistListSerializer(serializers.ModelSerializer):
 class LogistSerializer(serializers.ModelSerializer):
     category = serializers.CharField(source='category.id')
     address = serializers.CharField(source='address.id')
+    category_name = serializers.CharField(source='category.name')
+    address_name = serializers.CharField(source='address.name')
     images = serializers.ListField(child=serializers.ImageField(), write_only=True)
     latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
@@ -287,7 +289,7 @@ class LogistSerializer(serializers.ModelSerializer):
         model = Logist
         fields = ('pk', 'name', 'author', 'address', 'text', 'phone', 'last_date', 'images',
                   'where', 'nirden', 'bring', 'vip', 'price', 'url', 'created', 'img', 'checked',
-                  'category', 'latitude', 'longitude')
+                  'category', 'latitude', 'longitude','category_name','address_name')
 
 
 class ImageOtherSerializer(serializers.ModelSerializer):

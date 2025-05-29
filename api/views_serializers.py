@@ -34,19 +34,27 @@ class UserPost(generics.ListCreateAPIView):
 class UserLoginView(APIView):
     def post(self, request):
         author = request.data.get('author')
-        password = request.data.get('password')
+        
+        
+        if not author or len(author) != 8 or not author.isdigit():
+            return Response({'error': 'Telefon belgisi nädogry.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = authenticate(username=author, password=password)
-        if user is not None:
-            refresh = RefreshToken.for_user(user)
-            user.checked = True
-            user.save()
-            return Response({
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-                'user': user.author
-            })
-        return Response({'error': 'Nädogry maglumat.'}, status=status.HTTP_401_UNAUTHORIZED)
+        user, created = UserProd.objects.get_or_create(author=author)
+
+        if not user.checked_sms:
+            return Response({'error': 'Boş SMS ugradanyňyz ýok. Ilki SMS ugradyň we garaşyň.'},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        user.checked = True
+        user.save()
+
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'user': author
+        }, status=status.HTTP_200_OK)
 
 class UserCreate(APIView):
     name = 'userprod-list'

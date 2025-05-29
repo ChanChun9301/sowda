@@ -1,12 +1,44 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from rest_framework import status
 from .models import *
 import bcrypt
+
+@api_view(['POST'])
+def send_sms_request(request):
+    author = request.data.get('author')
+    if not author or len(author) != 8:
+        return Response({'error': 'Telefon belgisi nädogry.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user, created = UserProd.objects.get_or_create(author=author)
+    user.sms_sent_at = timezone.now()  # wagt bellenýär
+    user.checked = False
+    user.save()
+
+    # Bu ýerde SMS ugratmak logikasy goşup bilersiňiz.
+    return Response({'success': 'SMS ugradyldy. 10 minutda tassyklamaly.'})
+
+@api_view(['POST'])
+def confirm_sms(request):
+    author = request.data.get('author')
+    try:
+        user = UserProd.objects.get(author=author)
+
+        if not user.is_sms_valid():
+            return Response({'error': 'SMS wagty gutardy. Täzeden sorap görüň.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.checked = True
+        user.save()
+        return Response({'success': 'SMS tassyklama üstünlikli.'})
+    except UserProd.DoesNotExist:
+        return Response({'error': 'Ulanyjy tapylmady'}, status=status.HTTP_404_NOT_FOUND)
+
 
 @receiver(post_save, sender=UserProd)
 def user_created(sender, instance, created, **kwargs):
     if created:
-        # Perform any actions you want to take when a new product is created
         print(f"Täze ulanyjy: {instance.author}")
 
 def hash_password(password):

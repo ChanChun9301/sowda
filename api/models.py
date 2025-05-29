@@ -6,11 +6,13 @@ from mptt.models import MPTTModel, TreeForeignKey
 from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
+from django.utils import timezone
+from datetime import timedelta
 
 
 class AuditLog(models.Model):
     user = models.CharField(max_length=255, null=True, blank=True)
-    action = models.CharField(max_length=255)
+    action = models.CharField(blank=True,max_length=255)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -19,6 +21,12 @@ class AuditLog(models.Model):
 class UserProd(models.Model):
     author = models.CharField(max_length=255, null=True)
     checked = models.BooleanField(default=False, verbose_name='Barlandy')
+    sms_sent_at = models.DateTimeField(null=True, blank=True)  # Goşulan meýdan
+
+    def is_sms_valid(self):
+        if not self.sms_sent_at:
+            return False
+        return timezone.now() < self.sms_sent_at + timedelta(minutes=10)
 
     class Meta:
         verbose_name = "Ulanyjy"
@@ -29,7 +37,7 @@ class UserProd(models.Model):
 
 
 class CarouselImage(models.Model):
-    name = models.CharField(max_length=150, verbose_name='Ady')
+    name = models.CharField(max_length=150,blank=True, verbose_name='Ady')
     img = models.ImageField(upload_to='carousel', null=True, verbose_name='Surat')
 
     class Meta:
@@ -41,7 +49,7 @@ class CarouselImage(models.Model):
 
 
 class Address(MPTTModel):
-    name = models.CharField(max_length=100, null=True, verbose_name='Salgy')
+    name = models.CharField(max_length=100,blank=True, null=True, verbose_name='Salgy')
     parent = TreeForeignKey(
         'self',
         on_delete=models.CASCADE,
@@ -59,7 +67,7 @@ class Address(MPTTModel):
 
 
 class TopProducts(models.Model):
-    name = models.CharField(max_length=100, null=True, verbose_name='Ady')
+    name = models.CharField(max_length=100,blank=True, null=True, verbose_name='Ady')
     category = models.CharField(max_length=100, null=True, verbose_name='Kategoriýa')
     author = models.CharField(max_length=255, null=True, verbose_name='Awtor')
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, verbose_name='Bahasy')
@@ -98,7 +106,8 @@ class TopProducts(models.Model):
 
     @staticmethod
     def image_upload_path(instance, filename):
-        return f'top_product/{instance.created.strftime("%Y-%m-%d")}-{instance.name}/{filename}'
+        now = datetime.now().strftime("%Y-%m-%d")
+        return f'top_product/{now}-{instance.top.name}/{filename}'
 
 
 class ImageTop(models.Model):
@@ -124,7 +133,7 @@ class ImageTop(models.Model):
 
 
 class NewsCategory(models.Model):
-    name = models.CharField(max_length=100, null=True, verbose_name='Habar kategoriýasy')
+    name = models.CharField(max_length=100, blank=True,null=True, verbose_name='Habar kategoriýasy')
 
     class Meta:
         verbose_name = "Habar kategoriýasy"
@@ -148,7 +157,7 @@ def images_add_top(instance, filename):
     return f'top_product/{datetime.now().strftime("%Y%m%d_%H%M")}_multi/{filename}'
 
 class News(models.Model):
-    name = models.CharField(max_length=500, null=True, verbose_name='Ady')
+    name = models.CharField(max_length=500, blank=True,null=True, verbose_name='Ady')
     author = models.CharField(max_length=150, null=True, verbose_name='Awtor')
     category = models.ForeignKey(NewsCategory, on_delete=models.CASCADE, verbose_name='Kategoriýa')
     img = models.ImageField(upload_to='habarlar/', null=True, verbose_name='Surat')
@@ -164,13 +173,10 @@ class News(models.Model):
     def __str__(self):
         return self.name or "Ady ýok"
 
-    @staticmethod
-    def image_upload_path(instance, filename):
-        return f'habarlary/{instance.created.strftime("%Y-%m-%d")}-{instance.name[:50]}/{filename}'
 
 
 class CarCategory(models.Model):
-    name = models.CharField(null=True, max_length=100)
+    name = models.CharField(null=True,blank=True, max_length=100)
     parent = models.ForeignKey(
         'self', 
         on_delete=models.CASCADE, 
@@ -192,7 +198,7 @@ def image_add_car(self,filename):
 def images_add_car(self,filename):
     return f'awtoulaglar/{self.created}-{self.car.name}/{filename}'
 class Car(models.Model):
-    name = models.CharField(null=True, max_length=100)
+    name = models.CharField(null=True, blank=True,max_length=100)
     address = models.ForeignKey(Address,on_delete=models.CASCADE)
     author = models.CharField(max_length=8,null=True)
     category = models.ForeignKey(CarCategory,on_delete=models.CASCADE)
@@ -227,7 +233,7 @@ class ImageCar(models.Model):
 
 
 class ElinCategory(models.Model):
-    name = models.CharField(null=True, max_length=100)
+    name = models.CharField(null=True,blank=True, max_length=100)
     parent = models.ForeignKey(
         'self', 
         on_delete=models.CASCADE, 
@@ -251,7 +257,7 @@ def images_add_elin(self,filename):
     return f'elin/{self.created}-{self.elin.name}{filename}'
 
 class Elin(models.Model):
-    name = models.CharField(null=True, max_length=100)
+    name = models.CharField(null=True,blank=True, max_length=100)
     address = models.ForeignKey(Address,on_delete=models.CASCADE)
     category = models.ForeignKey(ElinCategory,on_delete=models.CASCADE)
     author = models.CharField(max_length=8,null=True)
@@ -284,7 +290,7 @@ class ImageElin(models.Model):
         return f'{settings.HOSTNAME}/{self.img.url}'
 
 class LogistCategory(models.Model):
-    name = models.CharField(null=True, max_length=100)
+    name = models.CharField(null=True, blank=True,max_length=100)
     parent = models.ForeignKey(
         'self', 
         on_delete=models.CASCADE, 
@@ -308,7 +314,7 @@ def images_add_logist(self,filename):
     return f'logistika/{self.created}-{self.logist.name}/{filename}'
 
 class Logist(models.Model):
-    name = models.CharField(null=True, max_length=100)
+    name = models.CharField(null=True,blank=True, max_length=100)
     category = models.ForeignKey(LogistCategory, on_delete=models.CASCADE)
     author = models.CharField(max_length=8, null=True)
     where = models.CharField(max_length=20, null=True)
@@ -354,7 +360,7 @@ class ImageLogist(models.Model):
 
 
 class ServiceCategory(models.Model):
-    name = models.CharField(null=True, max_length=100)
+    name = models.CharField(null=True,blank=True, max_length=100)
     parent = models.ForeignKey(
         'self', 
         on_delete=models.CASCADE, 
@@ -378,7 +384,7 @@ def images_add_hyzmat(self,filename):
     return f'hyzmatlar/{self.created}-{self.service.name}/{filename}'
 
 class Service(models.Model):
-    name = models.CharField(null=True, max_length=100)
+    name = models.CharField(null=True,blank=True, max_length=100)
     address = models.ForeignKey(Address,on_delete=models.CASCADE)
     category = models.ForeignKey(ServiceCategory,on_delete=models.CASCADE)
     author = models.CharField(max_length=8,null=True)
@@ -412,7 +418,7 @@ class ImageService(models.Model):
 
 
 class OtherCategory(models.Model):
-    name = models.CharField(null=True, max_length=100)
+    name = models.CharField(null=True, blank=True,max_length=100)
     parent = models.ForeignKey(
         'self', 
         on_delete=models.CASCADE, 
@@ -436,7 +442,7 @@ def images_add_beyleki(self,filename):
     return f'beyleki/{self.created}-{self.other.name}/{filename}'
 
 class Other(models.Model):
-    name = models.CharField(null=True, max_length=100)
+    name = models.CharField(null=True,blank=True, max_length=100)
     address = models.ForeignKey(Address,on_delete=models.CASCADE)
     category = models.ForeignKey(OtherCategory,on_delete=models.CASCADE)
     author = models.CharField(max_length=8,null=True)
