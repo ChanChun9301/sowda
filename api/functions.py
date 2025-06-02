@@ -60,17 +60,6 @@ from django.dispatch import receiver
 from django.db.models.signals import post_save
 
 
-@receiver(post_save, sender=UserProd)
-def send_welcome_email(sender, instance, created, **kwargs):
-    if created:
-        send_mail(
-            'Hoş geldiňiz!',
-            f'Hormatly {instance.author}, siziň ulanyjy hasabyňyz üstünlikli döredildi.',
-            'from@example.com',
-            [f'{instance.author}@mysal.com'],
-            fail_silently=False,
-        )
-
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from .models import UserProd, AuditLog

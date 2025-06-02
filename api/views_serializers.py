@@ -6,6 +6,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import status
 from django.contrib.auth import authenticate
 from .models import *
+import jwt
+from rest_framework_simplejwt.settings import api_settings
 from .serializers import *
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
@@ -34,19 +36,15 @@ class UserPost(generics.ListCreateAPIView):
 class UserLoginView(APIView):
     def post(self, request):
         author = request.data.get('author')
-        
-        
+        print('>>>'+author)
+
         if not author or len(author) != 8 or not author.isdigit():
-            return Response({'error': 'Telefon belgisi nädogry.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'Telefon belgisi nädogry.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         user, created = UserProd.objects.get_or_create(author=author)
-
-        if not user.checked_sms:
-            return Response({'error': 'Boş SMS ugradanyňyz ýok. Ilki SMS ugradyň we garaşyň.'},
-                            status=status.HTTP_401_UNAUTHORIZED)
-
-        user.checked = True
-        user.save()
 
         refresh = RefreshToken.for_user(user)
 
@@ -61,6 +59,7 @@ class UserCreate(APIView):
 
     def post(self, request):
         data = request.data
+        print('author'+data)
         if UserProd.objects.filter(author=data.get('author')).exists():
             return Response({'error': 'Ulanyjy eýýäm bar.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -73,6 +72,7 @@ class UserCreate(APIView):
 class UserLogoutView(APIView):
     def post(self, request):
         author = request.data.get('author')
+        
         try:
             user = UserProd.objects.get(author=author)
             user.checked = False
@@ -85,9 +85,30 @@ class UserLogoutView(APIView):
 class UserProdDetailView(APIView):
     def get(self, request):
         author = request.GET.get('author')
-        if UserProd.objects.filter(author=author, checked=True).exists():
-            return Response({'token': True})
-        return Response({'token': False})
+        token = request.GET.get('token')
+
+
+        decoded = jwt.decode(token, api_settings.SIGNING_KEY, algorithms=["HS256"])
+        user_id = decoded.get('user_id')
+        user = UserProd.objects.get(id=user_id)
+
+
+        try:
+            # Tokeni dekod etmek
+            decoded = jwt.decode(token, api_settings.SIGNING_KEY, algorithms=["HS256"])
+
+            user_id = decoded.get('user_id')
+
+            # UserProd-dan barlamak
+            user = UserProd.objects.get(id=user_id)
+
+            if user.author == author:
+                return Response({'token': True})
+            else:
+                return Response({'token': False, 'detail': 'Telefon nomeri gabat gelmedi'})
+        
+        except (jwt.ExpiredSignatureError, jwt.DecodeError, UserProd.DoesNotExist):
+            return Response({'token': False, 'detail': 'Token nädogry ýa-da ulanyjy ýok'})
 
 class AddressList(generics.ListAPIView):
     queryset = Address.objects.all()

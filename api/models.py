@@ -21,19 +21,13 @@ class AuditLog(models.Model):
 class UserProd(models.Model):
     author = models.CharField(max_length=255, null=True)
     checked = models.BooleanField(default=False, verbose_name='Barlandy')
-    sms_sent_at = models.DateTimeField(null=True, blank=True)  # Goşulan meýdan
-
-    def is_sms_valid(self):
-        if not self.sms_sent_at:
-            return False
-        return timezone.now() < self.sms_sent_at + timedelta(minutes=10)
 
     class Meta:
         verbose_name = "Ulanyjy"
         verbose_name_plural = "Ulanyjylar"
 
     def __str__(self):
-        return f'id: {self.id} - {self.author}'
+        return f'{self.author}'
 
 
 class CarouselImage(models.Model):
