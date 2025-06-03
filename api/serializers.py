@@ -219,8 +219,18 @@ class ImageLogistSerializer(serializers.ModelSerializer):
         model = ImageLogist
         fields = ['img']
 
-
 class LogistCategorySerializer(serializers.ModelSerializer):
+    subcategories = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LogistCategory
+        fields = ('pk', 'name', 'subcategories')
+
+    def get_subcategories(self, obj):
+        subcats = obj.subcategories.all()
+        return LogistCategoryChildSerializer(subcats, many=True).data
+
+class LogistCategoryChildSerializer(serializers.ModelSerializer):
     class Meta:
         model = LogistCategory
         fields = ('pk', 'name')
