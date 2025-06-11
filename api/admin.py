@@ -5,26 +5,25 @@ from django.contrib import admin
 from django.utils.html import format_html
 
 def logist_main_image_preview(obj):
-    """Displays a thumbnail of the main 'img' field on the Logist list page."""
     if obj.img: # This refers to the 'img' field directly on the Logist model
         return format_html('<img src="{}" width="50" height="50" style="border-radius: 5px;" />', obj.img.url)
-    return "No Main Image"
-logist_main_image_preview.short_description = 'Main Image'
+    return "Esasy surat ýok"
+logist_main_image_preview.short_description = 'Esasy surat'
+
+def logist_car_main_image_preview(obj):
+    if obj.img: # This refers to the 'img' field directly on the Logist model
+        return format_html('<img src="{}" width="50" height="50" style="border-radius: 5px;" />', obj.img.url)
+    return "Esasy surat ýok"
+logist_car_main_image_preview.short_description = 'Esasy surat'
 
 
 def image_preview(obj):
-    """Displays a thumbnail image in the list_display."""
     if obj.img: # Referencing the 'img' field from your Logist model
         return format_html('<img src="{}" width="50" height="50" style="border-radius: 5px;" />', obj.img.url)
     return "No Image"
-image_preview.short_description = 'Main Image' 
+image_preview.short_description = 'Esasy surat' 
 
-# --- Inline for Related Logist Images (ImageLogist) ---
 class ImageLogistInline(admin.TabularInline):
-    """
-    Allows adding/editing multiple ImageLogist instances directly
-    from the Logist admin page.
-    """
     model = ImageLogist # Use your ImageLogist model here
     extra = 1 # Number of empty forms to show for new images
     fields = ('img', 'get_image_thumbnail') # 'description' if ImageLogist has one
@@ -80,7 +79,7 @@ class LogistAdmin(admin.ModelAdmin):
     # Fields that are read-only in the add/change form
     readonly_fields = (
         'created',
-        'main_image_form_preview', # Custom method to display main image preview in the form
+        'main_image_form_preview', # Custom method to display Esasy surat preview in the form
     )
 
     # Inlines to include related models (e.g., ImageLogist)
@@ -112,10 +111,10 @@ class LogistAdmin(admin.ModelAdmin):
             ),
             'description': 'Details about origin, destination, and delivery.',
         }),
-        ('Main Content & Image', { # Section for the primary text and image
+        ('Suratlar', { # Section for the primary text and image
             'fields': (
                 'text', # Your RichTextField
-                'img',  # The main image upload field for the Logist model
+                'img',  # The Esasy surat upload field for the Logist model
                 'main_image_form_preview', # Display the preview here
             ),
             'description': 'Main description and primary image for this logist entry.',
@@ -148,8 +147,117 @@ class LogistAdmin(admin.ModelAdmin):
     def main_image_form_preview(self, obj):
         if obj.img: # Refers to the 'img' field on the Logist model itself
             return format_html('<img src="{}" width="200" height="auto" style="border: 1px solid #ddd; border-radius: 5px;" />', obj.img.url)
-        return "No Main Image"
-    main_image_form_preview.short_description = 'Current Main Image'
+        return "Esasy surat ýok"
+    main_image_form_preview.short_description = 'Current Esasy surat'
+
+
+class ImageLogistCarInline(admin.TabularInline):
+    model = ImageLogistCar # Use your ImageLogist model here
+    extra = 1 # Number of empty forms to show for new images
+    fields = ('img', 'get_image_thumbnail') # 'description' if ImageLogist has one
+    readonly_fields = ('get_image_thumbnail',)
+
+    def get_image_thumbnail(self, instance):
+        if instance.img: # This refers to the 'img' field on the ImageLogist model
+            return format_html('<img src="{}" width="100" height="auto" style="border-radius: 3px;" />', instance.img.url)
+        return "No Image"
+    get_image_thumbnail.short_description = 'Thumbnail'
+
+@admin.register(LogistCar)
+class LogistCarAdmin(admin.ModelAdmin):
+    list_display = (
+        'name',
+        'author_username', # Custom method for linked author
+        'category',
+        'phone',
+        'price',
+        'checked',
+        'created',
+        logist_car_main_image_preview, # Thumbnail for the main Logist image
+    )
+
+    list_display_links = ('name', 'author_username')
+
+    list_filter = (
+        'checked',
+        'category',
+        'address',
+        'current_addr',
+        'created',
+    )
+
+    search_fields = (
+        'name',
+        'author', # 'author' is a CharField in Logist, so search directly
+        'phone',
+        'description',
+        'address',
+        'current_addr',
+    )
+
+    readonly_fields = (
+        'created',
+        'main_image_form_preview', # Custom method to display Esasy surat preview in the form
+    )
+
+    inlines = [ImageLogistCarInline]
+    list_per_page = 20
+
+    # Define the order and grouping of fields in the add/change form
+    fieldsets = (
+        (None, {
+            'fields': (
+                'name',
+                'category',
+                'author',
+                'phone',
+                'price',
+                'checked',
+            )
+        }),
+        ('Logistics Details', {
+            'fields': (
+                'address',
+                'current_addr',
+            ),
+            'description': 'Details about origin, destination, and delivery.',
+        }),
+        ('Suratlar', { # Section for the primary text and image
+            'fields': (
+                'text', # Your RichTextField
+                'img',  # The Esasy surat upload field for the Logist model
+                'main_image_form_preview', # Display the preview here
+            ),
+            'description': 'Main description and primary image for this logist entry.',
+        }),
+        ('Ýerleşýän ýeri', {
+            'fields': (
+                'latitude',
+                'longitude',
+            ),
+            'classes': ('collapse',),
+            'description': 'Geographical coordinates for the logist entry.',
+        }),
+        ('Waagty', {
+            'fields': (
+                'created',
+            ),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def author_username(self, obj):
+        return obj.author
+    author_username.short_description = 'Author'
+    author_username.admin_order_field = 'author' # Allows sorting by this column
+
+    def main_image_form_preview(self, obj):
+        if obj.img: # Refers to the 'img' field on the Logist model itself
+            return format_html('<img src="{}" width="200" height="auto" style="border: 1px solid #ddd; border-radius: 5px;" />', obj.img.url)
+        return "Esasy surat ýok"
+    main_image_form_preview.short_description = 'Current Esasy surat'
+
+#-------------------------------------------------------------------------------------------------
 
 # Elin
 

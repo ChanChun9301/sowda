@@ -230,10 +230,88 @@ class LogistCategorySerializer(serializers.ModelSerializer):
         subcats = obj.subcategories.all()
         return LogistCategoryChildSerializer(subcats, many=True).data
 
+
+
 class LogistCategoryChildSerializer(serializers.ModelSerializer):
     class Meta:
         model = LogistCategory
         fields = ('pk', 'name')
+
+class ImageLogistCarSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ImageLogistCar
+        fields = ['img']
+
+class LogistCarDetailSerializer(serializers.ModelSerializer):
+    category = serializers.CharField(source='category.name')
+    address = serializers.CharField(source='address.name')
+    images = serializers.StringRelatedField(many=True)
+    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, read_only=True)
+    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, read_only=True)
+
+    class Meta:
+        model = LogistCar
+        fields = ('pk', 'name', 'address', 'text', 'category', 'last_date', 'where', 'nirden',
+                  'bring', 'vip', 'phone', 'price', 'url', 'created', 'img', 'checked', 'images',
+                  'latitude', 'longitude')
+
+class LogistCarListSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name')
+    address_name = serializers.CharField(source='address.name')
+    current_address_name = serializers.CharField(source='current_addr.name')
+    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, read_only=True)
+    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, read_only=True)
+
+    class Meta:
+        model = LogistCar
+        fields = (
+            'pk', 'name', 'text', 'phone', 'price', 'created', 'img', 'checked',
+            'category_name', 'address_name', 'current_address_name',
+            'latitude', 'longitude'
+        )
+
+
+class LogistCarSerializer(serializers.ModelSerializer):
+    category = serializers.CharField(source='category.id')
+    address = serializers.CharField(source='address.id')
+    current_addr = serializers.CharField(source='current_addr.id')
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    address_name = serializers.CharField(source='address.name', read_only=True)
+    current_address_name = serializers.CharField(source='current_addr.name', read_only=True)
+    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+
+    def create(self, validated_data):
+        category_data = validated_data.pop('category')
+        address_data = validated_data.pop('address')
+        current_addr_data = validated_data.pop('current_addr')
+        latitude = validated_data.pop('latitude', None)
+        longitude = validated_data.pop('longitude', None)
+
+        category = LogistCategory.objects.get(id=int(category_data['id']))
+        address = Address.objects.get(id=int(address_data['id']))
+        current_addr = Address.objects.get(id=int(current_addr_data['id']))
+
+        logist_car = LogistCar.objects.create(
+            category=category,
+            address=address,
+            current_addr=current_addr,
+            latitude=latitude,
+            longitude=longitude,
+            **validated_data
+        )
+
+        return logist_car
+
+    class Meta:
+        model = LogistCar
+        fields = (
+            'pk', 'name', 'author', 'text', 'phone', 'price', 'img', 'created', 'checked',
+            'category', 'address', 'current_addr',
+            'latitude', 'longitude',
+            'category_name', 'address_name', 'current_address_name'
+        )
+
 
 
 class LogistDetailSerializer(serializers.ModelSerializer):

@@ -57,6 +57,14 @@ urlpatterns = [
     re_path(r'^logist-by-address-list/$', LogistByAddressList.as_view(), name=LogistByAddressList.name),
     re_path(r'^logist-by-category-list/$', LogistByCategoryList.as_view(), name=LogistByCategoryList.name),
 
+    re_path(r'^logistcar-list/$', LogistCarList.as_view(), name=LogistCarList.name),
+    re_path(r'^logistcarmain-list/$', LogistCarMainList.as_view(), name=LogistCarMainList.name),
+    re_path(r'^logistcar-added-list/$', LogistCarAddList.as_view(), name=LogistCarAddList.name),
+    re_path(r'^logistcar-list/(?P<pk>[0-9]+)$', LogistCarDetail.as_view(), name=LogistCarDetail.name),
+    re_path(r'^logistcar-by-address-list/$', LogistCarByAddressList.as_view(), name=LogistCarByAddressList.name),
+    re_path(r'^logistcar-by-category-list/$', LogistCarByCategoryList.as_view(), name=LogistCarByCategoryList.name),
+
+
     re_path(r'^elin-list/$', ElinList.as_view(), name=ElinList.name),  
     re_path(r'^elinmain-list/$', ElinMainList.as_view(), name=ElinMainList.name),  
     re_path(r'^elin-added-list/$', ElinAddList.as_view(), name=ElinAddList.name),  

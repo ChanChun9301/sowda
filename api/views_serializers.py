@@ -398,6 +398,7 @@ class ElinByAddressList(generics.ListAPIView):
 
         return queryset
 
+#----------------------------------------------------------
 
 class LogistMainList(generics.ListAPIView):
     queryset = Logist.objects.all()
@@ -502,6 +503,101 @@ class LogistByAddressList(generics.ListAPIView):
 
         if checked is not None:
             checked = bool(checked) 
+            queryset = queryset.filter(checked=checked)
+
+        return queryset
+
+#----------------------------------------------------------
+
+class LogistCarMainList(generics.ListAPIView):
+    queryset = LogistCar.objects.all()
+    pagination_class = MyPagination
+    serializer_class = LogistCarSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name']
+    ordering_fields = ['created']
+    name = 'logistcarmain-list'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        checked = self.request.query_params.get('checked')
+        address = self.request.query_params.get('address')
+        current_addr = self.request.query_params.get('current_addr')
+        category = self.request.query_params.get('category')
+
+        if checked is not None:
+            checked = checked.lower() in ['true', '1']
+            queryset = queryset.filter(checked=checked)
+        if address is not None:
+            queryset = queryset.filter(address__name__icontains=address)
+        if current_addr is not None:
+            queryset = queryset.filter(current_addr__name__icontains=current_addr)
+        if category is not None:
+            queryset = queryset.filter(category=int(category))
+
+        return queryset
+
+class LogistCarAddList(generics.ListAPIView):
+    queryset = LogistCar.objects.all()
+    serializer_class = LogistCarSerializer
+    pagination_class = MyPagination
+    search_fields = ['author']
+    name = 'logistcar-added-list'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        author = self.request.query_params.get('author')
+
+        if author:
+            queryset = queryset.filter(author=str(author))
+        else:
+            queryset = LogistCar.objects.none()
+
+        return queryset
+
+class LogistCarList(generics.ListCreateAPIView):
+    queryset = LogistCar.objects.all()
+    pagination_class = MyPagination
+    serializer_class = LogistCarSerializer
+    name = 'logistcar-list'
+
+class LogistCarDetail(generics.RetrieveDestroyAPIView):
+    queryset = LogistCar.objects.all()
+    serializer_class = LogistCarSerializer  # Or a detail serializer if needed
+    name = 'logistcar-detail'
+
+class LogistCarByCategoryList(generics.ListAPIView):
+    queryset = LogistCar.objects.all()
+    pagination_class = MyPagination
+    serializer_class = LogistCarSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['category__name']
+    name = 'logistcar_by_category-list'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        checked = self.request.query_params.get('checked')
+
+        if checked is not None:
+            checked = checked.lower() in ['true', '1']
+            queryset = queryset.filter(checked=checked)
+
+        return queryset
+
+class LogistCarByAddressList(generics.ListAPIView):
+    queryset = LogistCar.objects.all()
+    pagination_class = MyPagination
+    serializer_class = LogistCarSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['address__name']
+    name = 'logistcar_by_address-list'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        checked = self.request.query_params.get('checked')
+
+        if checked is not None:
+            checked = checked.lower() in ['true', '1']
             queryset = queryset.filter(checked=checked)
 
         return queryset
@@ -695,15 +791,25 @@ class ServiceByAddressList(generics.ListAPIView):
         return queryset
 #------------
 
+
 def logist_urls(request):
     return {
-        'logist': reverse(LogistMainList.name, request=request),
-        'logist-gosulan': reverse(LogistAddList.name, request=request),
-        'logist-gosmak': reverse(LogistList.name, request=request),
-        'logist - category': reverse(LogistCategoryList.name, request=request),
-        'logist - by_category': reverse(LogistByCategoryList.name, request=request),
-        'logist - by_address': reverse(LogistByAddressList.name, request=request),
+        # Logist
+        'logist-main': reverse(LogistMainList.name, request=request),
+        'logist-added': reverse(LogistAddList.name, request=request),
+        'logist-create': reverse(LogistList.name, request=request),
+        'logist-category': reverse(LogistCategoryList.name, request=request),
+        'logist-by-category': reverse(LogistByCategoryList.name, request=request),
+        'logist-by-address': reverse(LogistByAddressList.name, request=request),
+
+        # LogistCar
+        'logistcar-main': reverse(LogistCarMainList.name, request=request),
+        'logistcar-added': reverse(LogistCarAddList.name, request=request),
+        'logistcar-create': reverse(LogistCarList.name, request=request),
+        'logistcar-by-category': reverse(LogistCarByCategoryList.name, request=request),
+        'logistcar-by-address': reverse(LogistCarByAddressList.name, request=request),
     }
+
 
 def elin_urls(request):
     return {

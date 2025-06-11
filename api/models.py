@@ -352,6 +352,47 @@ class ImageLogist(models.Model):
     def __str__(self):
         return f'{settings.HOSTNAME}{self.img.url}'
 
+class LogistCar(models.Model):
+    name = models.CharField(null=True,blank=True, max_length=100)
+    category = models.ForeignKey(LogistCategory, on_delete=models.CASCADE)
+    author = models.CharField(max_length=8, null=True)
+    address = models.ForeignKey(Address, on_delete=models.CASCADE,related_name='address')
+    current_addr = models.ForeignKey(Address, on_delete=models.CASCADE,related_name='current_address')
+    phone = models.IntegerField(null=True)
+    img = models.ImageField(upload_to=image_add_logist, null=True)
+    text = RichTextField(null=True)
+    created = models.DateTimeField(auto_now_add=True)
+    checked = models.BooleanField(default=False,verbose_name='Barlandy')
+    price = models.DecimalField(null=True, max_digits=10, decimal_places=2)
+    
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name="Eni")
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name="Uzynlygy")
+    
+    class Meta:
+        ordering = ['checked', '-created']
+        verbose_name = "Logistika ulag"
+        verbose_name_plural = "Logistika ulaglar"
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def thumbnail_url(self):
+        return self.img.url
+
+class ImageLogistCar(models.Model):
+    logist = models.ForeignKey(LogistCar,on_delete=models.CASCADE,verbose_name='Haryt',null=True,related_name='images')
+    img = models.ImageField(upload_to=images_add_logist,null=True,verbose_name='Surat')
+    created = models.DateTimeField(auto_now_add=True,verbose_name='Döredilen wagty',null=True)
+
+    class Meta:
+        ordering= ['-created']
+        verbose_name = ("Logistika ulag surat")
+        verbose_name_plural = ("Logistika ulag suratlar")
+
+    def __str__(self):
+        return f'{settings.HOSTNAME}{self.img.url}'
+
 
 class ServiceCategory(models.Model):
     name = models.CharField(null=True,blank=True, max_length=100)
