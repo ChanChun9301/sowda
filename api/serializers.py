@@ -1,44 +1,38 @@
-from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import *
-from .functions import user_created
+from .models import (
+    Address, LogistCategory, ServiceCategory, VehicleCategory, SparePartCategory,
+    Logist, Service, Vehicle, SparePart,
+    ImageLogist, ImageService, ImageVehicle, ImageSparePart
+)
 
 
-class RefreshSerializer(serializers.Serializer):
-    user_id = serializers.IntegerField()
-    username = serializers.CharField()
+# ====================== BASE SERIALIZERS ======================
+
+class DynamicImageSerializer(serializers.ModelSerializer):
+    """Umumy surat serializer – URL-ni build edýär"""
+    url = serializers.SerializerMethodField()
+
+    def get_url(self, obj):
+        request = self.context.get('request')
+        if obj.img and hasattr(obj.img, 'url'):
+            url = obj.img.url
+            return request.build_absolute_uri(url) if request else url
+        return None
 
 
-class CarouselSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CarouselImage
-        fields = ('pk', 'name', 'img')
+class CategoryTreeSerializer(serializers.ModelSerializer):
+    """Kategoriýa agajy – subkategoriýalar bilen"""
+    subcategories = serializers.SerializerMethodField()
 
-
-class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
-
-    class Meta:
-        model = UserProd
-        fields = ['id', 'author', 'password', 'checked']
-        read_only_fields = ['checked']
-
-    def create(self, validated_data):
-        user = UserProd.objects.create_user(
-            username=validated_data['author'],
-            password=validated_data['password']
-        )
-        return user
-
-
-class UserCreateSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(write_only=True)
-    password = serializers.CharField(write_only=True)
+    def get_subcategories(self, obj):
+        children = obj.subcategories.all()
+        return self.__class__(children, many=True, context=self.context).data
 
     class Meta:
-        model = UserProd
-        fields = ('author', 'username', 'password')
+        fields = ('pk', 'name', 'parent', 'subcategories')
 
+
+# ====================== ADDRESS ======================
 
 class AddressSerializer(serializers.ModelSerializer):
     subaddresses = serializers.SerializerMethodField()
@@ -49,440 +43,337 @@ class AddressSerializer(serializers.ModelSerializer):
 
     def get_subaddresses(self, obj):
         children = obj.subaddresses.all()
-        return AddressSerializer(children, many=True).data
+        return AddressSerializer(children, many=True, context=self.context).data
 
 
-class NewsCategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = NewsCategory
-        fields = ('pk', 'name')
+# ====================== KATEGORIÝALAR ======================
 
-
-class ImageTopSerializer(serializers.ModelSerializer):
-    url = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ImageTop
-        fields = ['url']
-
-    def get_url(self, obj):
-        request = self.context.get('request')
-        if obj.img and hasattr(obj.img, 'url'):
-            url = obj.img.url
-            if request:
-                return request.build_absolute_uri(url)
-            return url
-        return None
-
-
-class TopProductsSerializer(serializers.ModelSerializer):
-    address_name = serializers.CharField(source='address.name', read_only=True)
-
-    class Meta:
-        model = TopProducts
-        fields = ('pk', 'name', 'address_name', 'text', 'phone', 'price', 'created', 'img', 'checked','thumbnail')
-
-
-class TopProductDetailSerializer(serializers.ModelSerializer):
-    images = ImageTopSerializer(many=True, read_only=True)
-    address = serializers.CharField(source='address.name', read_only=True)
-
-    class Meta:
-        model = TopProducts
-        fields = ['pk', 'name', 'address', 'text', 'category', 'phone', 'price', 'created', 'img', 'checked', 'images']
-
-
-class NewsSerializer(serializers.ModelSerializer):
-    category = serializers.CharField(source='category.name', read_only=True)
-
-    class Meta:
-        model = News
-        fields = ('pk', 'name', 'img', 'author', 'text', 'category', 'created', 'checked')
-
-
-class ImageCarSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ImageCar
-        fields = ['img']
-
-
-class CarCategorySerializer(serializers.ModelSerializer):
-    subcategories = serializers.SerializerMethodField()
-
-    class Meta:
-        model = CarCategory
-        fields = ('pk', 'name', 'parent', 'subcategories')
-
-    def get_subcategories(self, obj):
-        children = obj.subcategories.all()
-        return CarCategorySerializer(children, many=True).data
-
-
-class CarDetailSerializer(serializers.ModelSerializer):
-    category = serializers.CharField()
-    address = serializers.CharField()
-    images = serializers.StringRelatedField(many=True)
-
-    class Meta:
-        model = Car
-        fields = ('pk', 'name', 'address', 'text', 'category', 'phone', 'price', 'created', 'img', 'images')
-
-
-class CarListSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name')
-    address_name = serializers.CharField(source='address.name')
-
-    class Meta:
-        model = Car
-        fields = ('pk', 'name', 'text', 'phone', 'price', 'created', 'img', 'checked', 'address_name', 'category_name')
-
-
-class CarSerializer(serializers.ModelSerializer):
-    category = serializers.CharField(source='category.id')
-    address = serializers.CharField(source='address.id')
-    images = serializers.ListField(child=serializers.ImageField(), write_only=True)
-
-    def create(self, validated_data):
-        address_data = validated_data.pop('address')
-        category_data = validated_data.pop('category')
-        images_data = validated_data.pop('images')
-        category = CarCategory.objects.get(id=int(category_data['id']))
-        address = Address.objects.get(id=int(address_data['id']))
-        car = Car.objects.create(category=category, address=address, **validated_data)
-
-        for image in images_data:
-            ImageCar.objects.create(car=car, img=image)
-
-        return car
-
-    class Meta:
-        model = Car
-        fields = ('pk', 'name', 'address', 'author', 'text', 'phone', 'price', 'created', 'img', 'category', 'images')
-
-
-class ImageElinSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ImageElin
-        fields = ['img']
-
-
-class ElinCategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ElinCategory
-        fields = ('pk', 'name')
-
-
-class ElinDetailSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name')
-    address_name = serializers.CharField(source='address.name')
-    images = serializers.StringRelatedField(many=True)
-
-    class Meta:
-        model = Elin
-        fields = ('pk', 'name', 'address_name', 'text', 'category_name', 'phone', 'price', 'created', 'img', 'images', 'checked')
-
-
-class ElinListSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name')
-    address_name = serializers.CharField(source='address.name')
-
-    class Meta:
-        model = Elin
-        fields = ('pk', 'name', 'text', 'phone', 'price', 'created', 'img', 'checked', 'author', 'category_name', 'address_name')
-
-
-class ElinSerializer(serializers.ModelSerializer):
-    category = serializers.CharField(source='category.id')
-    address = serializers.CharField(source='address.id')
-    images = serializers.ListField(child=serializers.ImageField(), write_only=True)
-
-    def create(self, validated_data):
-        address_data = validated_data.pop('address')
-        category_data = validated_data.pop('category')
-        images_data = validated_data.pop('images')
-        category = ElinCategory.objects.get(id=int(category_data['id']))
-        address = Address.objects.get(id=int(address_data['id']))
-        elin = Elin.objects.create(category=category, address=address, **validated_data)
-
-        for image in images_data:
-            ImageElin.objects.create(elin=elin, img=image)
-
-        return elin
-
-    class Meta:
-        model = Elin
-        fields = ('pk', 'name', 'address', 'text', 'phone', 'price', 'created', 'img', 'checked', 'category', 'author', 'images')
-
-
-class ImageLogistSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ImageLogist
-        fields = ['img']
-
-class LogistCategorySerializer(serializers.ModelSerializer):
-    subcategories = serializers.SerializerMethodField()
-
-    class Meta:
+class LogistCategorySerializer(CategoryTreeSerializer):
+    class Meta(CategoryTreeSerializer.Meta):
         model = LogistCategory
         fields = ('pk', 'name', 'subcategories')
 
-    def get_subcategories(self, obj):
-        subcats = obj.subcategories.all()
-        return LogistCategoryChildSerializer(subcats, many=True).data
+
+class ServiceCategorySerializer(CategoryTreeSerializer):
+    class Meta(CategoryTreeSerializer.Meta):
+        model = ServiceCategory
+        fields = ('pk', 'name', 'subcategories')
 
 
+class VehicleCategorySerializer(CategoryTreeSerializer):
+    class Meta(CategoryTreeSerializer.Meta):
+        model = VehicleCategory
+        fields = ('pk', 'name', 'subcategories')
 
-class LogistCategoryChildSerializer(serializers.ModelSerializer):
+
+class SparePartCategorySerializer(CategoryTreeSerializer):
+    class Meta(CategoryTreeSerializer.Meta):
+        model = SparePartCategory
+        fields = ('pk', 'name', 'subcategories')
+
+
+# ====================== SURAT SERIALIZERLARY ======================
+
+class ImageLogistSerializer(DynamicImageSerializer):
     class Meta:
-        model = LogistCategory
-        fields = ('pk', 'name')
+        model = ImageLogist
+        fields = ('url',)
 
-class ImageLogistCarSerializer(serializers.ModelSerializer):
+
+class ImageServiceSerializer(DynamicImageSerializer):
     class Meta:
-        model = ImageLogistCar
-        fields = ['img']
+        model = ImageService
+        fields = ('url',)
 
-class LogistCarDetailSerializer(serializers.ModelSerializer):
-    category = serializers.CharField(source='category.name')
-    address = serializers.CharField(source='address.name')
-    images = serializers.StringRelatedField(many=True)
-    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, read_only=True)
-    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, read_only=True)
 
+class ImageVehicleSerializer(DynamicImageSerializer):
     class Meta:
-        model = LogistCar
-        fields = ('pk', 'name', 'address', 'text', 'category', 'last_date', 'where', 'nirden',
-                  'bring', 'vip', 'phone', 'price', 'url', 'created', 'img', 'checked', 'images',
-                  'latitude', 'longitude')
+        model = ImageVehicle
+        fields = ('url',)
 
-class LogistCarListSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name')
-    address_name = serializers.CharField(source='address.name')
-    current_address_name = serializers.CharField(source='current_addr.name')
-    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, read_only=True)
-    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, read_only=True)
 
+class ImageSparePartSerializer(DynamicImageSerializer):
     class Meta:
-        model = LogistCar
-        fields = (
-            'pk', 'name', 'text', 'phone', 'price', 'created', 'img', 'checked',
-            'category_name', 'address_name', 'current_address_name',
-            'latitude', 'longitude'
-        )
+        model = ImageSparePart
+        fields = ('url',)
 
 
-class LogistCarSerializer(serializers.ModelSerializer):
-    category = serializers.CharField(source='category.id')
-    address = serializers.CharField(source='address.id')
-    current_addr = serializers.CharField(source='current_addr.id')
+# ====================== PRODUCT BASE (DRY) ======================
+
+class BaseProductListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     address_name = serializers.CharField(source='address.name', read_only=True)
-    current_address_name = serializers.CharField(source='current_addr.name', read_only=True)
-    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
-    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    thumbnail_url = serializers.SerializerMethodField()
 
-    def create(self, validated_data):
-        category_data = validated_data.pop('category')
-        address_data = validated_data.pop('address')
-        current_addr_data = validated_data.pop('current_addr')
-        latitude = validated_data.pop('latitude', None)
-        longitude = validated_data.pop('longitude', None)
+    def get_thumbnail_url(self, obj):
+        request = self.context.get('request')
+        if obj.thumbnail and hasattr(obj.thumbnail, 'url'):
+            url = obj.thumbnail.url
+            return request.build_absolute_uri(url) if request else url
+        return None
 
-        category = LogistCategory.objects.get(id=int(category_data['id']))
-        address = Address.objects.get(id=int(address_data['id']))
-        current_addr = Address.objects.get(id=int(current_addr_data['id']))
 
-        logist_car = LogistCar.objects.create(
-            category=category,
-            address=address,
-            current_addr=current_addr,
-            latitude=latitude,
-            longitude=longitude,
-            **validated_data
-        )
+class BaseProductDetailSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    address_name = serializers.CharField(source='address.name', read_only=True)
+    images = serializers.SerializerMethodField()
+    thumbnail_url = serializers.SerializerMethodField()
 
-        return logist_car
+    def get_images(self, obj):
+        # Dinamiki surat serializer saýlaýjy
+        image_serializer_map = {
+            Logist: ImageLogistSerializer,
+            Service: ImageServiceSerializer,
+            Vehicle: ImageVehicleSerializer,
+            SparePart: ImageSparePartSerializer,
+        }
+        ImageModel = obj.__class__.__name__ + 'Image'
+        serializer_class = image_serializer_map.get(obj.__class__, ImageLogistSerializer)
+        images = obj.images.all()
+        return serializer_class(images, many=True, context=self.context).data
 
+    def get_thumbnail_url(self, obj):
+        request = self.context.get('request')
+        if obj.thumbnail:
+            url = obj.thumbnail.url
+            return request.build_absolute_uri(url) if request else url
+        return None
+
+
+# ====================== LOGISTIKA ======================
+
+class LogistListSerializer(BaseProductListSerializer):
     class Meta:
-        model = LogistCar
+        model = Logist
         fields = (
-            'pk', 'name', 'author', 'text', 'phone', 'price', 'img', 'created', 'checked',
-            'category', 'address', 'current_addr',
-            'latitude', 'longitude',
-            'category_name', 'address_name', 'current_address_name'
+            'pk', 'name', 'text', 'phone', 'price', 'created', 'img', 'checked',
+            'category_name', 'address_name', 'where', 'nirden', 'last_date',
+            'bring', 'vip', 'latitude', 'longitude', 'thumbnail_url'
         )
 
 
-
-class LogistDetailSerializer(serializers.ModelSerializer):
-    category = serializers.CharField(source='category.name')
-    address = serializers.CharField(source='address.name')
-    images = serializers.StringRelatedField(many=True)
-    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, read_only=True)
-    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, read_only=True)
-
+class LogistDetailSerializer(BaseProductDetailSerializer):
     class Meta:
         model = Logist
-        fields = ('pk', 'name', 'address', 'text', 'category', 'last_date', 'where', 'nirden',
-                  'bring', 'vip', 'phone', 'price', 'url', 'created', 'img', 'checked', 'images',
-                  'latitude', 'longitude')
-
-
-class LogistListSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name')
-    address_name = serializers.CharField(source='address.name')
-    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, read_only=True)
-    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, read_only=True)
-
-    class Meta:
-        model = Logist
-        fields = ('pk', 'name', 'text', 'phone', 'price', 'created', 'last_date', 'where',
-                  'nirden', 'bring', 'vip', 'img', 'checked', 'address_name', 'category_name',
-                  'latitude', 'longitude')
+        fields = (
+            'pk', 'name', 'address_name', 'text', 'category_name', 'phone', 'price',
+            'created', 'img', 'checked', 'where', 'nirden', 'last_date', 'bring',
+            'vip', 'latitude', 'longitude', 'images', 'thumbnail_url'
+        )
 
 
 class LogistSerializer(serializers.ModelSerializer):
-    category = serializers.CharField(source='category.id')
-    address = serializers.CharField(source='address.id')
-    category_name = serializers.CharField(source='category.name')
-    address_name = serializers.CharField(source='address.name')
-    images = serializers.ListField(child=serializers.ImageField(), write_only=True)
+    category = serializers.IntegerField(write_only=True)
+    address = serializers.IntegerField(write_only=True)
+    images = serializers.ListField(
+        child=serializers.ImageField(), write_only=True, required=False
+    )
     latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
 
-    def create(self, validated_data):
-        address_data = validated_data.pop('address')
-        category_data = validated_data.pop('category')
-        images_data = validated_data.pop('images', [])
-        latitude = validated_data.pop('latitude', None)
-        longitude = validated_data.pop('longitude', None)
-
-        category = LogistCategory.objects.get(id=int(category_data['id']))
-        address = Address.objects.get(id=int(address_data['id']))
-
-        logist = Logist.objects.create(
-            category=category,
-            address=address,
-            latitude=latitude,
-            longitude=longitude,
-            **validated_data
+    class Meta:
+        model = Logist
+        fields = (
+            'pk', 'name', 'author', 'text', 'phone', 'price', 'img', 'created', 'checked',
+            'category', 'address', 'where', 'nirden', 'last_date', 'bring', 'vip',
+            'latitude', 'longitude', 'images'
         )
 
-        for image in images_data:
-            ImageLogist.objects.create(logist=logist, img=image)
+    def create(self, validated_data):
+        category_id = validated_data.pop('category')
+        address_id = validated_data.pop('address')
+        images_data = validated_data.pop('images', [])
+
+        category = LogistCategory.objects.get(pk=category_id)
+        address = Address.objects.get(pk=address_id)
+
+        logist = Logist.objects.create(
+            category=category, address=address, **validated_data
+        )
+
+        for img in images_data:
+            ImageLogist.objects.create(logist=logist, img=img)
 
         return logist
 
-    class Meta:
-        model = Logist
-        fields = ('pk', 'name', 'author', 'address', 'text', 'phone', 'last_date', 'images',
-                  'where', 'nirden', 'bring', 'vip', 'price', 'url', 'created', 'img', 'checked',
-                  'category', 'latitude', 'longitude','category_name','address_name')
 
+# ====================== HYZMATLAR ======================
 
-class ImageOtherSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ImageOther
-        fields = ['img']
-
-
-class OtherCategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = OtherCategory
-        fields = ('pk', 'name')
-
-
-class OtherDetailSerializer(serializers.ModelSerializer):
-    category = serializers.CharField()
-    address = serializers.CharField()
-    images = serializers.StringRelatedField(many=True)
-
-    class Meta:
-        model = Other
-        fields = ('pk', 'name', 'address', 'text', 'category', 'phone', 'price', 'created', 'img', 'images', 'checked')
-
-
-class OtherListSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name')
-    address_name = serializers.CharField(source='address.name')
-
-    class Meta:
-        model = Other
-        fields = ('pk', 'name', 'text', 'phone', 'price', 'created', 'img', 'checked', 'address_name', 'category_name')
-
-
-class OtherSerializer(serializers.ModelSerializer):
-    category = serializers.CharField(source='category.id')
-    address = serializers.CharField(source='address.id')
-    images = serializers.ListField(child=serializers.ImageField(), write_only=True)
-
-    def create(self, validated_data):
-        address_data = validated_data.pop('address')
-        category_data = validated_data.pop('category')
-        images_data = validated_data.pop('images')
-        category = OtherCategory.objects.get(id=int(category_data['id']))
-        address = Address.objects.get(id=int(address_data['id']))
-        other = Other.objects.create(category=category, address=address, **validated_data)
-        for image in images_data:
-            ImageOther.objects.create(other=other, img=image)
-        return other
-
-    class Meta:
-        model = Other
-        fields = ('pk', 'name', 'address', 'text', 'phone', 'price', 'created', 'img', 'checked', 'category', 'author', 'images')
-
-
-class ImageServiceSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ImageService
-        fields = ['img']
-
-
-class ServiceCategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ServiceCategory
-        fields = ('pk', 'name')
-
-
-class ServiceDetailSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name')
-    address_name = serializers.CharField(source='address.name')
-    images = serializers.StringRelatedField(many=True)
-
+class ServiceListSerializer(BaseProductListSerializer):
     class Meta:
         model = Service
-        fields = ('pk', 'name', 'address_name', 'text', 'category_name', 'phone', 'price', 'created', 'img', 'images', 'checked')
+        fields = (
+            'pk', 'name', 'text', 'phone', 'price', 'created', 'img', 'checked',
+            'category_name', 'address_name', 'thumbnail_url'
+        )
 
 
-class ServiceListSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name')
-    address_name = serializers.CharField(source='address.name')
-    images = serializers.ListField(child=serializers.ImageField(), write_only=True)
-
+class ServiceDetailSerializer(BaseProductDetailSerializer):
     class Meta:
         model = Service
-        fields = ('pk', 'name', 'author', 'text', 'phone', 'price', 'created', 'img', 'checked', 'images', 'category_name', 'address_name')
+        fields = (
+            'pk', 'name', 'address_name', 'text', 'category_name', 'phone', 'price',
+            'created', 'img', 'checked', 'images', 'thumbnail_url'
+        )
 
 
 class ServiceSerializer(serializers.ModelSerializer):
-    category = serializers.CharField(source='category.id')
-    address = serializers.CharField(source='address.id')
-    images = serializers.ListField(child=serializers.ImageField(), write_only=True)
-
-    def create(self, validated_data):
-        address_data = validated_data.pop('address')
-        category_data = validated_data.pop('category')
-        images_data = validated_data.pop('images')
-        category = ServiceCategory.objects.get(id=int(category_data['id']))
-        address = Address.objects.get(id=int(address_data['id']))
-        service = Service.objects.create(category=category, address=address, **validated_data)
-
-        for image in images_data:
-            ImageService.objects.create(service=service, img=image)
-
-        return service
+    category = serializers.IntegerField(write_only=True)
+    address = serializers.IntegerField(write_only=True)
+    images = serializers.ListField(
+        child=serializers.ImageField(), write_only=True, required=False
+    )
 
     class Meta:
         model = Service
-        fields = ('pk', 'name', 'address', 'author', 'text', 'phone', 'price',
-                  'created', 'img', 'checked', 'category', 'images')
+        fields = (
+            'pk', 'name', 'author', 'text', 'phone', 'price', 'img', 'created', 'checked',
+            'category', 'address', 'images'
+        )
+
+    def create(self, validated_data):
+        category_id = validated_data.pop('category')
+        address_id = validated_data.pop('address')
+        images_data = validated_data.pop('images', [])
+
+        category = ServiceCategory.objects.get(pk=category_id)
+        address = Address.objects.get(pk=address_id)
+
+        service = Service.objects.create(
+            category=category, address=address, **validated_data
+        )
+
+        for img in images_data:
+            ImageService.objects.create(service=service, img=img)
+
+        return service
+
+
+# ====================== ULAGLAR ======================
+
+class VehicleListSerializer(BaseProductListSerializer):
+    current_address_name = serializers.CharField(source='current_addr.name', read_only=True)
+
+    class Meta:
+        model = Vehicle
+        fields = (
+            'pk', 'name', 'text', 'phone', 'price', 'created', 'img', 'checked',
+            'category_name', 'address_name', 'current_address_name',
+            'latitude', 'longitude', 'thumbnail_url'
+        )
+
+
+class VehicleDetailSerializer(BaseProductDetailSerializer):
+    current_address_name = serializers.CharField(source='current_addr.name', read_only=True)
+
+    class Meta:
+        model = Vehicle
+        fields = (
+            'pk', 'name', 'address_name', 'text', 'category_name', 'phone', 'price',
+            'created', 'img', 'checked', 'current_address_name',
+            'latitude', 'longitude', 'images', 'thumbnail_url'
+        )
+
+
+class VehicleSerializer(serializers.ModelSerializer):
+    category = serializers.IntegerField(write_only=True)
+    address = serializers.IntegerField(write_only=True)
+    current_addr = serializers.IntegerField(write_only=True)
+    images = serializers.ListField(
+        child=serializers.ImageField(), write_only=True, required=False
+    )
+    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+
+    class Meta:
+        model = Vehicle
+        fields = (
+            'pk', 'name', 'author', 'text', 'phone', 'price', 'img', 'created', 'checked',
+            'category', 'address', 'current_addr', 'latitude', 'longitude', 'images'
+        )
+
+    def create(self, validated_data):
+        category_id = validated_data.pop('category')
+        address_id = validated_data.pop('address')
+        current_addr_id = validated_data.pop('current_addr')
+        images_data = validated_data.pop('images', [])
+
+        category = VehicleCategory.objects.get(pk=category_id)
+        address = Address.objects.get(pk=address_id)
+        current_addr = Address.objects.get(pk=current_addr_id)
+
+        vehicle = Vehicle.objects.create(
+            category=category, address=address, current_addr=current_addr, **validated_data
+        )
+
+        for img in images_data:
+            ImageVehicle.objects.create(vehicle=vehicle, img=img)
+
+        return vehicle
+
+
+# ====================== ÄTIÝAÇLYK ŞAÝLARY ======================
+
+class SparePartListSerializer(BaseProductListSerializer):
+    part_number = serializers.CharField(read_only=True)
+    brand = serializers.CharField(read_only=True)
+    model = serializers.CharField(read_only=True)
+    condition = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = SparePart
+        fields = (
+            'pk', 'name', 'text', 'phone', 'price', 'created', 'img', 'checked',
+            'category_name', 'address_name', 'part_number', 'brand', 'model',
+            'condition', 'thumbnail_url'
+        )
+
+
+class SparePartDetailSerializer(BaseProductDetailSerializer):
+    part_number = serializers.CharField(read_only=True)
+    brand = serializers.CharField(read_only=True)
+    model = serializers.CharField(read_only=True)
+    year = serializers.IntegerField(read_only=True)
+    condition = serializers.CharField(read_only=True)
+    compatibility = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = SparePart
+        fields = (
+            'pk', 'name', 'address_name', 'text', 'category_name', 'phone', 'price',
+            'created', 'img', 'checked', 'part_number', 'brand', 'model', 'year',
+            'condition', 'compatibility', 'images', 'thumbnail_url'
+        )
+
+
+class SparePartSerializer(serializers.ModelSerializer):
+    category = serializers.IntegerField(write_only=True)
+    address = serializers.IntegerField(write_only=True)
+    images = serializers.ListField(
+        child=serializers.ImageField(), write_only=True, required=False
+    )
+
+    class Meta:
+        model = SparePart
+        fields = (
+            'pk', 'name', 'author', 'text', 'phone', 'price', 'img', 'created', 'checked',
+            'category', 'address', 'part_number', 'brand', 'model', 'year',
+            'condition', 'compatibility', 'images'
+        )
+
+    def create(self, validated_data):
+        category_id = validated_data.pop('category')
+        address_id = validated_data.pop('address')
+        images_data = validated_data.pop('images', [])
+
+        category = SparePartCategory.objects.get(pk=category_id)
+        address = Address.objects.get(pk=address_id)
+
+        sparepart = SparePart.objects.create(
+            category=category, address=address, **validated_data
+        )
+
+        for img in images_data:
+            ImageSparePart.objects.create(sparepart=sparepart, img=img)
+
+        return sparepart

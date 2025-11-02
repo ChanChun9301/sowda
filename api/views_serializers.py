@@ -1,22 +1,39 @@
 from rest_framework import generics, filters, status, pagination
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
-from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework import status
 from django.contrib.auth import authenticate
-from .models import *
-import jwt
-from rest_framework_simplejwt.settings import api_settings
-from .serializers import *
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+import jwt
+from rest_framework_simplejwt.settings import api_settings
 
+from .models import (
+    Address, LogistCategory, ServiceCategory, VehicleCategory, SparePartCategory,
+    Logist, Service, Vehicle, SparePart,
+    ImageLogist, ImageService, ImageVehicle, ImageSparePart,
+    UserProd, AuditLog
+)
+from .serializers import (
+    AddressSerializer,
+    LogistCategorySerializer, ServiceCategorySerializer, VehicleCategorySerializer, SparePartCategorySerializer,
+    LogistListSerializer, LogistDetailSerializer, LogistSerializer,
+    ServiceListSerializer, ServiceDetailSerializer, ServiceSerializer,
+    VehicleListSerializer, VehicleDetailSerializer, VehicleSerializer,
+    SparePartListSerializer, SparePartDetailSerializer, SparePartSerializer,
+    UserSerializer
+)
+
+
+# ====================== PAGINATION ======================
 class MyPagination(pagination.PageNumberPagination):
     page_size = 12
     page_size_query_param = 'page_size'
     max_page_size = 1000
 
+
+# ====================== AUTH LOGGING ======================
 @receiver(post_save, sender=UserProd)
 def log_userprod_save(sender, instance, created, **kwargs):
     action = "Created" if created else "Updated"
@@ -26,6 +43,8 @@ def log_userprod_save(sender, instance, created, **kwargs):
 def log_userprod_delete(sender, instance, **kwargs):
     AuditLog.objects.create(user=instance.author, action="UserProd Deleted")
 
+
+# ====================== AUTH VIEWS ======================
 class UserPost(generics.ListCreateAPIView):
     queryset = UserProd.objects.all()
     serializer_class = UserSerializer
@@ -33,19 +52,17 @@ class UserPost(generics.ListCreateAPIView):
     search_fields = ['author']
     name = 'userprod-list'
 
+
 class UserLoginView(APIView):
     def post(self, request):
         author = request.data.get('author')
-        print('>>>'+author)
-
         if not author or len(author) != 8 or not author.isdigit():
             return Response(
-                {'error': 'Telefon belgisi nädogry.'}, 
+                {'error': 'Telefon belgisi nädogry.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         user, created = UserProd.objects.get_or_create(author=author)
-
         refresh = RefreshToken.for_user(user)
 
         return Response({
@@ -54,25 +71,10 @@ class UserLoginView(APIView):
             'user': author
         }, status=status.HTTP_200_OK)
 
-class UserCreate(APIView):
-    name = 'userprod-list'
-
-    def post(self, request):
-        data = request.data
-        print('author'+data)
-        if UserProd.objects.filter(author=data.get('author')).exists():
-            return Response({'error': 'Ulanyjy eýýäm bar.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        serializer = UserSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserLogoutView(APIView):
     def post(self, request):
         author = request.data.get('author')
-        
         try:
             user = UserProd.objects.get(author=author)
             user.checked = False
@@ -81,762 +83,321 @@ class UserLogoutView(APIView):
         except UserProd.DoesNotExist:
             return Response({'error': 'Ulanyjy tapylmady'}, status=status.HTTP_400_BAD_REQUEST)
 
-            
+
 class UserProdDetailView(APIView):
     def get(self, request):
         author = request.GET.get('author')
         token = request.GET.get('token')
 
-
-        decoded = jwt.decode(token, api_settings.SIGNING_KEY, algorithms=["HS256"])
-        user_id = decoded.get('user_id')
-        user = UserProd.objects.get(id=user_id)
-
-
         try:
-            # Tokeni dekod etmek
             decoded = jwt.decode(token, api_settings.SIGNING_KEY, algorithms=["HS256"])
-
             user_id = decoded.get('user_id')
-
-            # UserProd-dan barlamak
             user = UserProd.objects.get(id=user_id)
 
             if user.author == author:
                 return Response({'token': True})
-            else:
-                return Response({'token': False, 'detail': 'Telefon nomeri gabat gelmedi'})
-        
+            return Response({'token': False, 'detail': 'Telefon nomeri gabat gelmedi'})
         except (jwt.ExpiredSignatureError, jwt.DecodeError, UserProd.DoesNotExist):
             return Response({'token': False, 'detail': 'Token nädogry ýa-da ulanyjy ýok'})
 
+
+# ====================== ADDRESS ======================
 class AddressList(generics.ListAPIView):
     queryset = Address.objects.all()
     serializer_class = AddressSerializer
     name = 'address-list'
 
-class AddressDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Address.objects.all()
-    serializer_class = AddressSerializer
-    name = 'address-detail'
 
-#----------------------------
-class NewsList(generics.ListAPIView):
-    serializer_class = NewsSerializer
-    filter_backends = [filters.SearchFilter]
-    pagination_class = MyPagination
-    search_fields = ['name']
-    name = 'news-list'
-
-    def get_queryset(self):
-        queryset = News.objects.all()
-        checked = self.request.query_params.get('checked')
-        if checked is not None:
-            checked = checked.lower() in ['true', '1']
-            queryset = queryset.filter(checked=checked)
-        return queryset
-
-class NewsDetail(generics.RetrieveAPIView):
-    queryset = News.objects.all()
-    serializer_class = NewsSerializer
-    name = 'news-detail'
-
-class NewsCategoryList(generics.ListAPIView):
-    queryset = NewsCategory.objects.all()
-    serializer_class = NewsCategorySerializer
-    name = 'newscategory-list'
-
-class NewsByCategoryList(generics.ListAPIView):
-    serializer_class = NewsSerializer
-    filter_backends = [filters.SearchFilter]
-    pagination_class = MyPagination
-    search_fields = ['category__name']
-    name = 'news_by_category-list'
-
-    def get_queryset(self):
-        queryset = News.objects.all()
-        checked = self.request.query_params.get('checked')
-        if checked is not None:
-            checked = checked.lower() in ['true', '1']
-            queryset = queryset.filter(checked=checked)
-        return queryset
-
-#------------------------------------
-class ImageList(generics.ListAPIView):
-    queryset = ImageTop.objects.all()
-    serializer_class = ImageTopSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['name', 'top']
-    name = 'imagetop-list'
-
-class ImageDetail(generics.RetrieveAPIView):
-    queryset = ImageTop.objects.all()
-    serializer_class = ImageTopSerializer
-    name = 'imagetop-detail'
-
-class CarouselList(generics.ListAPIView):
-    queryset = CarouselImage.objects.all()
-    serializer_class = CarouselSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['name', 'address']
-    name = 'carousel-list'
-
-class CarouselDetail(generics.RetrieveAPIView):
-    queryset = CarouselImage.objects.all()
-    serializer_class = CarouselSerializer
-    name = 'carousel-detail'
-
-
-
-class TopProductsList(generics.ListAPIView):
-    serializer_class = TopProductsSerializer
-    filter_backends = [filters.SearchFilter]
-    pagination_class = MyPagination
-    search_fields = ['name']
-    name = 'topmain-list'
-
-    def get_queryset(self):
-        queryset = TopProducts.objects.all()
-        checked = self.request.query_params.get('checked')
-        if checked is not None:
-            checked = checked.lower() in ['true', '1']
-            queryset = queryset.filter(checked=checked)
-        return queryset
-
-class TopProductsDetail(generics.RetrieveAPIView):
-    queryset = TopProducts.objects.all()
-    serializer_class = TopProductDetailSerializer
-    name = 'topmain-detail'
-
-
-
-
-class CarMainList(generics.ListAPIView):
-    queryset = Car.objects.all()
-    serializer_class = CarListSerializer
-    filter_backends = [filters.SearchFilter]
-    pagination_class = MyPagination
-    search_fields = ['name']
-    name = 'carmain-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-
-        if checked is not None:
-            checked = bool(checked) 
-            queryset = queryset.filter(checked=checked)
-
-        return queryset
-
-class CarAddList(generics.ListAPIView):
-    queryset = Car.objects.all()
-    serializer_class = CarListSerializer
-    filter_backends = [filters.SearchFilter]
-    pagination_class = MyPagination
-    search_fields = ['author']
-    name = 'car-added-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        author = self.request.query_params.get('author')
-
-        if author:
-            author = str(author) 
-            queryset = queryset.filter(author=author)
-        else:
-            queryset=[]
-
-        return queryset
-
-class CarList(generics.ListCreateAPIView):
-    queryset = Car.objects.all()
-    pagination_class = MyPagination
-    serializer_class = CarSerializer
-    name = 'car-list'
-
-class CarDetail(generics.RetrieveDestroyAPIView):
-    queryset = Car.objects.all()
-    serializer_class = CarDetailSerializer
-    name = 'car-detail'
-
-class CarCategoryList(generics.ListAPIView):
-    queryset = CarCategory.objects.all()
-    
-    serializer_class = CarCategorySerializer
-    name = 'carcategory-list'
-
-class CarByCategoryList(generics.ListAPIView):
-    category=CarCategorySerializer
-    queryset = Car.objects.all()
-    serializer_class = CarListSerializer
-    filter_backends = [filters.SearchFilter]
-    pagination_class = MyPagination
-    search_fields = ['category__name']
-    name = 'car_by_category-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-
-        if checked is not None:
-            checked = bool(checked) 
-            queryset = queryset.filter(checked=checked)
-
-        return queryset
-
-class CarByAddressList(generics.ListAPIView):
-    address=AddressSerializer
-    queryset = Car.objects.all()
-    pagination_class = MyPagination
-    serializer_class = CarListSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['address__name']
-    name = 'car_by_address-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-
-        if checked is not None:
-            checked = bool(checked) 
-            queryset = queryset.filter(checked=checked)
-
-        return queryset
-
-
-class ElinMainList(generics.ListAPIView):
-    queryset = Elin.objects.all()
-    serializer_class = ElinSerializer
-    filter_backends = [filters.SearchFilter]
-    pagination_class = MyPagination
-    search_fields = ['name']
-    name = 'elinmain-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-
-        if checked is not None:
-            checked = bool(checked) 
-            queryset = queryset.filter(checked=checked)
-
-        return queryset
-
-class ElinAddList(generics.ListAPIView):
-    queryset = Elin.objects.all()
-    serializer_class = ElinListSerializer
-    filter_backends = [filters.SearchFilter]
-    pagination_class = MyPagination
-    search_fields = ['author']
-    name = 'elin-added-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        author = self.request.query_params.get('author')
-
-        print(author)
-        if author:
-            author = str(author) 
-            queryset = queryset.filter(author=author)
-        else:
-            queryset=[]
-
-        return queryset
-    
-class ElinList(generics.ListCreateAPIView):
-    queryset = Elin.objects.all()
-    serializer_class = ElinSerializer
-    pagination_class = MyPagination
-    name = 'elin-list'
-
-class ElinDetail(generics.RetrieveDestroyAPIView):
-    queryset = Elin.objects.all()
-    serializer_class = ElinDetailSerializer
-    name = 'elin-detail'
-
-class ElinCategoryList(generics.ListAPIView):
-    queryset = ElinCategory.objects.all()
-    serializer_class = ElinCategorySerializer
-    name = 'elincategory-list'
-
-class ElinByCategoryList(generics.ListAPIView):
-    category=ElinCategorySerializer
-    queryset = Elin.objects.all()
-    serializer_class = ElinSerializer
-    filter_backends = [filters.SearchFilter]
-    pagination_class = MyPagination
-    search_fields = ['category__name']
-    name = 'elin_by_category-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-
-        if checked is not None:
-            checked = bool(checked) 
-            queryset = queryset.filter(checked=checked)
-
-        return queryset
-
-class ElinByAddressList(generics.ListAPIView):
-    address=AddressSerializer
-    queryset = Elin.objects.all()
-    serializer_class = ElinSerializer
-    pagination_class = MyPagination
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['address__name']
-    name = 'elin_by_address-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-
-        if checked is not None:
-            checked = bool(checked) 
-            queryset = queryset.filter(checked=checked)
-
-        return queryset
-
-#----------------------------------------------------------
-
-class LogistMainList(generics.ListAPIView):
-    queryset = Logist.objects.all()
-    pagination_class = MyPagination
-    serializer_class = LogistSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['name']
-    ordering_fields = ['created']   
-    name = 'logistmain-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-        nirden = self.request.query_params.get('nirden')
-        where = self.request.query_params.get('where')
-        bring = self.request.query_params.get('bring')
-        category = self.request.query_params.get('category')
-        
-
-        if checked is not None:
-            checked = bool(checked) 
-            queryset = queryset.filter(checked=checked)
-        if nirden is not None:
-            queryset=queryset.filter(nirden__icontains=nirden)
-        if where is not None:
-            queryset=queryset.filter(where__icontains=where)
-        if category is not None:
-            category = int(category)             
-            queryset=queryset.filter(category=category)
-        if bring is not None:
-            queryset=queryset.filter(bring=bring)
-
-        return queryset
-
-class LogistAddList(generics.ListAPIView):
-    queryset = Logist.objects.all()
-    serializer_class = LogistSerializer
-    pagination_class = MyPagination
-    search_fields = ['author']
-    name = 'logist-added-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        author = self.request.query_params.get('author')
-
-        print(author)
-        if author:
-            author = str(author) 
-            queryset = queryset.filter(author=author)
-        else:
-            queryset=[]
-
-        return queryset
-
-class LogistList(generics.ListCreateAPIView):
-    pagination_class = MyPagination
-    queryset = Logist.objects.all()
-    serializer_class = LogistSerializer
-    name = 'logist-list'
-
-class LogistDetail(generics.RetrieveDestroyAPIView):
-    queryset = Logist.objects.all()
-    serializer_class = LogistDetailSerializer
-    name = 'logist-detail'
-
+# ====================== CATEGORY LISTS ======================
 class LogistCategoryList(generics.ListAPIView):
     queryset = LogistCategory.objects.all()
     serializer_class = LogistCategorySerializer
     name = 'logistcategory-list'
 
-class LogistByCategoryList(generics.ListAPIView):
-    category=LogistCategorySerializer
-    queryset = Logist.objects.all()
-    pagination_class = MyPagination
-    serializer_class = LogistSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['category__name']
-    name = 'logist_by_category-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-
-        if checked is not None:
-            checked = bool(checked) 
-            queryset = queryset.filter(checked=checked)
-
-        return queryset
-
-class LogistByAddressList(generics.ListAPIView):
-    address=AddressSerializer
-    queryset = Logist.objects.all()
-    serializer_class = LogistSerializer
-    pagination_class = MyPagination
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['address__name']
-    name = 'logist_by_address-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-
-        if checked is not None:
-            checked = bool(checked) 
-            queryset = queryset.filter(checked=checked)
-
-        return queryset
-
-#----------------------------------------------------------
-
-class LogistCarMainList(generics.ListAPIView):
-    queryset = LogistCar.objects.all()
-    pagination_class = MyPagination
-    serializer_class = LogistCarSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['name']
-    ordering_fields = ['created']
-    name = 'logistcarmain-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-        address = self.request.query_params.get('address')
-        current_addr = self.request.query_params.get('current_addr')
-        category = self.request.query_params.get('category')
-
-        if checked is not None:
-            checked = checked.lower() in ['true', '1']
-            queryset = queryset.filter(checked=checked)
-        if address is not None:
-            queryset = queryset.filter(address__name__icontains=address)
-        if current_addr is not None:
-            queryset = queryset.filter(current_addr__name__icontains=current_addr)
-        if category is not None:
-            queryset = queryset.filter(category=int(category))
-
-        return queryset
-
-class LogistCarAddList(generics.ListAPIView):
-    queryset = LogistCar.objects.all()
-    serializer_class = LogistCarSerializer
-    pagination_class = MyPagination
-    search_fields = ['author']
-    name = 'logistcar-added-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        author = self.request.query_params.get('author')
-
-        if author:
-            queryset = queryset.filter(author=str(author))
-        else:
-            queryset = LogistCar.objects.none()
-
-        return queryset
-
-class LogistCarList(generics.ListCreateAPIView):
-    queryset = LogistCar.objects.all()
-    pagination_class = MyPagination
-    serializer_class = LogistCarSerializer
-    name = 'logistcar-list'
-
-class LogistCarDetail(generics.RetrieveDestroyAPIView):
-    queryset = LogistCar.objects.all()
-    serializer_class = LogistCarSerializer  # Or a detail serializer if needed
-    name = 'logistcar-detail'
-
-class LogistCarByCategoryList(generics.ListAPIView):
-    queryset = LogistCar.objects.all()
-    pagination_class = MyPagination
-    serializer_class = LogistCarSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['category__name']
-    name = 'logistcar_by_category-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-
-        if checked is not None:
-            checked = checked.lower() in ['true', '1']
-            queryset = queryset.filter(checked=checked)
-
-        return queryset
-
-class LogistCarByAddressList(generics.ListAPIView):
-    queryset = LogistCar.objects.all()
-    pagination_class = MyPagination
-    serializer_class = LogistCarSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['address__name']
-    name = 'logistcar_by_address-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-
-        if checked is not None:
-            checked = checked.lower() in ['true', '1']
-            queryset = queryset.filter(checked=checked)
-
-        return queryset
-
-
-#------------------------------------
-class OtherMainList(generics.ListAPIView):
-    queryset = Other.objects.all()
-    serializer_class = OtherSerializer
-    pagination_class = MyPagination
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['name']
-    name = 'othermain-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-
-        if checked is not None:
-            checked = bool(checked) 
-            queryset = queryset.filter(checked=checked)
-
-        return queryset
-
-class OtherAddList(generics.ListAPIView):
-    queryset = Other.objects.all()
-    serializer_class = OtherListSerializer
-    pagination_class = MyPagination
-    search_fields = ['author']
-    name = 'other-added-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        author = self.request.query_params.get('author')
-
-        if author:
-            author = str(author) 
-            queryset = queryset.filter(author=author)
-        else:
-            queryset=[]
-
-        return queryset
-
-class OtherList(generics.ListCreateAPIView):
-    queryset = Other.objects.all()
-    pagination_class = MyPagination
-    serializer_class = OtherSerializer
-    name = 'other-list'
-
-class OtherDetail(generics.RetrieveDestroyAPIView):
-    queryset = Other.objects.all()
-    serializer_class = OtherDetailSerializer
-    name = 'other-detail'
-
-class OtherCategoryList(generics.ListAPIView):
-    queryset = OtherCategory.objects.all()
-    serializer_class = OtherCategorySerializer
-    name = 'othercategory-list'
-
-class OtherByCategoryList(generics.ListAPIView):
-    category=OtherCategorySerializer
-    queryset = Other.objects.all()
-    pagination_class = MyPagination
-    serializer_class = OtherSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['category__name']
-    name = 'other_by_category-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-
-        if checked is not None:
-            checked = bool(checked) 
-            queryset = queryset.filter(checked=checked)
-
-        return queryset
-
-class OtherByAddressList(generics.ListAPIView):
-    address=AddressSerializer
-    pagination_class = MyPagination
-    queryset = Other.objects.all()
-    serializer_class = OtherSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['address__name']
-    name = 'other_by_address-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-
-        if checked is not None:
-            checked = bool(checked) 
-            queryset = queryset.filter(checked=checked)
-
-        return queryset
-
-
-
-class ServiceMainList(generics.ListAPIView):
-    queryset = Service.objects.all()
-    serializer_class = ServiceSerializer
-    filter_backends = [filters.SearchFilter]
-    pagination_class = MyPagination
-    search_fields = ['name']
-    name = 'servicemain-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-
-        if checked is not None:
-            checked = bool(checked) 
-            queryset = queryset.filter(checked=checked)
-
-        return queryset
-
-class ServiceAddList(generics.ListAPIView):
-    queryset = Service.objects.all()
-    serializer_class = ServiceListSerializer
-    filter_backends = [filters.SearchFilter]
-    pagination_class = MyPagination
-    search_fields = ['author']
-    name = 'service-added-list'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        author = self.request.query_params.get('author')
-
-        print(author)
-        if author:
-            author = str(author) 
-            queryset = queryset.filter(author=author)
-        else:
-            queryset=[]
-
-        return queryset
-
-class ServiceList(generics.ListCreateAPIView):
-    queryset = Service.objects.all()
-    serializer_class = ServiceSerializer
-    pagination_class = MyPagination
-    name = 'service-list'
-
-class ServiceDetail(generics.RetrieveAPIView):
-    queryset = Service.objects.all()
-    serializer_class = ServiceDetailSerializer
-    name = 'service-detail'
 
 class ServiceCategoryList(generics.ListAPIView):
     queryset = ServiceCategory.objects.all()
     serializer_class = ServiceCategorySerializer
     name = 'servicecategory-list'
 
-class ServiceByCategoryList(generics.ListAPIView):
-    category=ServiceCategorySerializer
+
+class VehicleCategoryList(generics.ListAPIView):
+    queryset = VehicleCategory.objects.all()
+    serializer_class = VehicleCategorySerializer
+    name = 'vehiclecategory-list'
+
+
+class SparePartCategoryList(generics.ListAPIView):
+    queryset = SparePartCategory.objects.all()
+    serializer_class = SparePartCategorySerializer
+    name = 'sparepartcategory-list'
+
+
+# ====================== BASE PRODUCT VIEW MIXIN ======================
+class ProductListView(generics.ListAPIView):
     pagination_class = MyPagination
-    queryset = Service.objects.all()
-    serializer_class = ServiceSerializer
     filter_backends = [filters.SearchFilter]
+    search_fields = ['name']
+    checked_param = 'checked'
+
+    def get_queryset(self):
+        queryset = self.queryset
+        checked = self.request.query_params.get(self.checked_param)
+        if checked is not None:
+            checked = checked.lower() in ['true', '1']
+            queryset = queryset.filter(checked=checked)
+        return queryset
+
+
+class ProductCreateListView(generics.ListCreateAPIView):
+    pagination_class = MyPagination
+
+
+# ====================== LOGISTIKA ======================
+class LogistMainList(ProductListView):
+    queryset = Logist.objects.all()
+    serializer_class = LogistListSerializer
+    name = 'logist-main'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        nirden = self.request.query_params.get('nirden')
+        where = self.request.query_params.get('where')
+        bring = self.request.query_params.get('bring')
+        category = self.request.query_params.get('category')
+
+        if nirden: queryset = queryset.filter(nirden__icontains=nirden)
+        if where: queryset = queryset.filter(where__icontains=where)
+        if bring is not None: queryset = queryset.filter(bring=bring.lower() == 'true')
+        if category: queryset = queryset.filter(category=int(category))
+
+        return queryset
+
+
+class LogistAddList(ProductListView):
+    queryset = Logist.objects.all()
+    serializer_class = LogistListSerializer
+    search_fields = ['author']
+    name = 'logist-added'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        author = self.request.query_params.get('author')
+        return queryset.filter(author=author) if author else queryset.none()
+
+
+class LogistList(ProductCreateListView):
+    queryset = Logist.objects.all()
+    serializer_class = LogistSerializer
+    name = 'logist-create'
+
+
+class LogistDetail(generics.RetrieveDestroyAPIView):
+    queryset = Logist.objects.all()
+    serializer_class = LogistDetailSerializer
+    name = 'logist-detail'
+
+
+class LogistByCategoryList(ProductListView):
+    queryset = Logist.objects.all()
+    serializer_class = LogistListSerializer
     search_fields = ['category__name']
-    name = 'service_by_category-list'
+    name = 'logist-by-category'
+
+
+class LogistByAddressList(ProductListView):
+    queryset = Logist.objects.all()
+    serializer_class = LogistListSerializer
+    search_fields = ['address__name']
+    name = 'logist-by-address'
+
+
+# ====================== HYZMATLAR ======================
+class ServiceMainList(ProductListView):
+    queryset = Service.objects.all()
+    serializer_class = ServiceListSerializer
+    name = 'service-main'
+
+
+class ServiceAddList(ProductListView):
+    queryset = Service.objects.all()
+    serializer_class = ServiceListSerializer
+    search_fields = ['author']
+    name = 'service-added'
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
+        author = self.request.query_params.get('author')
+        return queryset.filter(author=author) if author else queryset.none()
 
-        if checked is not None:
-            checked = bool(checked) 
-            queryset = queryset.filter(checked=checked)
 
-        return queryset
-
-class ServiceByAddressList(generics.ListAPIView):
-    address=AddressSerializer
-    pagination_class = MyPagination
+class ServiceList(ProductCreateListView):
     queryset = Service.objects.all()
     serializer_class = ServiceSerializer
-    filter_backends = [filters.SearchFilter]
+    name = 'service-create'
+
+
+class ServiceDetail(generics.RetrieveAPIView):
+    queryset = Service.objects.all()
+    serializer_class = ServiceDetailSerializer
+    name = 'service-detail'
+
+
+class ServiceByCategoryList(ProductListView):
+    queryset = Service.objects.all()
+    serializer_class = ServiceListSerializer
+    search_fields = ['category__name']
+    name = 'service-by-category'
+
+
+class ServiceByAddressList(ProductListView):
+    queryset = Service.objects.all()
+    serializer_class = ServiceListSerializer
     search_fields = ['address__name']
-    name = 'service_by_address-list'
+    name = 'service-by-address'
+
+
+# ====================== ULAGLAR ======================
+class VehicleMainList(ProductListView):
+    queryset = Vehicle.objects.all()
+    serializer_class = VehicleListSerializer
+    name = 'vehicle-main'
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        checked = self.request.query_params.get('checked')
-
-        if checked is not None:
-            checked = bool(checked) 
-            queryset = queryset.filter(checked=checked)
-
+        current_addr = self.request.query_params.get('current_addr')
+        if current_addr:
+            queryset = queryset.filter(current_addr__name__icontains=current_addr)
         return queryset
-#------------
 
 
-def logist_urls(request):
-    return {
-        # Logist
-        'logist-main': reverse(LogistMainList.name, request=request),
-        'logist-added': reverse(LogistAddList.name, request=request),
-        'logist-create': reverse(LogistList.name, request=request),
-        'logist-category': reverse(LogistCategoryList.name, request=request),
-        'logist-by-category': reverse(LogistByCategoryList.name, request=request),
-        'logist-by-address': reverse(LogistByAddressList.name, request=request),
+class VehicleAddList(ProductListView):
+    queryset = Vehicle.objects.all()
+    serializer_class = VehicleListSerializer
+    search_fields = ['author']
+    name = 'vehicle-added'
 
-        # LogistCar
-        'logistcar-main': reverse(LogistCarMainList.name, request=request),
-        'logistcar-added': reverse(LogistCarAddList.name, request=request),
-        'logistcar-create': reverse(LogistCarList.name, request=request),
-        'logistcar-by-category': reverse(LogistCarByCategoryList.name, request=request),
-        'logistcar-by-address': reverse(LogistCarByAddressList.name, request=request),
-    }
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        author = self.request.query_params.get('author')
+        return queryset.filter(author=author) if author else queryset.none()
 
 
-def elin_urls(request):
-    return {
-        'elin': reverse(ElinMainList.name, request=request),
-        'elin-gosulan': reverse(ElinAddList.name, request=request),
-        'elin-gosmak': reverse(ElinList.name, request=request),
-        'elin - category': reverse(ElinCategoryList.name, request=request),
-        'elin - by_category': reverse(ElinByCategoryList.name, request=request),
-        'elin - by_address': reverse(ElinByAddressList.name, request=request),
-    }
+class VehicleList(ProductCreateListView):
+    queryset = Vehicle.objects.all()
+    serializer_class = VehicleSerializer
+    name = 'vehicle-create'
 
+
+class VehicleDetail(generics.RetrieveDestroyAPIView):
+    queryset = Vehicle.objects.all()
+    serializer_class = VehicleDetailSerializer
+    name = 'vehicle-detail'
+
+
+class VehicleByCategoryList(ProductListView):
+    queryset = Vehicle.objects.all()
+    shuffle_class = VehicleListSerializer
+    search_fields = ['category__name']
+    name = 'vehicle-by-category'
+
+
+class VehicleByAddressList(ProductListView):
+    queryset = Vehicle.objects.all()
+    serializer_class = VehicleListSerializer
+    search_fields = ['address__name']
+    name = 'vehicle-by-address'
+
+
+# ====================== ÄTIÝAÇLYK ŞAÝLARY ======================
+class SparePartMainList(ProductListView):
+    queryset = SparePart.objects.all()
+    serializer_class = SparePartListSerializer
+    name = 'sparepart-main'
+
+
+class SparePartAddList(ProductListView):
+    queryset = SparePart.objects.all()
+    serializer_class = SparePartListSerializer
+    search_fields = ['author']
+    name = 'sparepart-added'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        author = self.request.query_params.get('author')
+        return queryset.filter(author=author) if author else queryset.none()
+
+
+class SparePartList(ProductCreateListView):
+    queryset = SparePart.objects.all()
+    serializer_class = SparePartSerializer
+    name = 'sparepart-create'
+
+
+class SparePartDetail(generics.RetrieveDestroyAPIView):
+    queryset = SparePart.objects.all()
+    serializer_class = SparePartDetailSerializer
+    name = 'sparepart-detail'
+
+
+class SparePartByCategoryList(ProductListView):
+    queryset = SparePart.objects.all()
+    serializer_class = SparePartListSerializer
+    search_fields = ['category__name']
+    name = 'sparepart-by-category'
+
+
+class SparePartByAddressList(ProductListView):
+    queryset = SparePart.objects.all()
+    serializer_class = SparePartListSerializer
+    search_fields = ['address__name']
+    name = 'sparepart-by-address'
+
+
+# ====================== API ROOT ======================
 class ApiRoot(APIView):
-    name = 'Seýir'
+    name = 'api-root'
+
     def get(self, request, *args, **kwargs):
         return Response({
             'auth': {
-                'register': reverse(UserCreate.name, request=request),
                 'login': reverse('user-login', request=request),
                 'logout': reverse('user-logout', request=request),
-            },
-            'products': {
-                'top': reverse(TopProductsList.name, request=request),
-                'carousel': reverse(CarouselList.name, request=request),
-            },
-            'news': {
-                'list': reverse(NewsList.name, request=request),
-                'categories': reverse(NewsCategoryList.name, request=request),
+                'register': reverse(UserPost.name, request=request),
             },
             'addresses': reverse(AddressList.name, request=request),
+            'categories': {
+                'logistika': reverse(LogistCategoryList.name, request=request),
+                'hyzmatlar': reverse(ServiceCategoryList.name, request=request),
+                'ulaglar': reverse(VehicleCategoryList.name, request=request),
+                'ätiýaçlyk_şaýlar': reverse(SparePartCategoryList.name, request=request),
+            },
+            'logistika': {
+                'list': reverse(LogistMainList.name, request=request),
+                'added': reverse(LogistAddList.name, request=request),
+                'create': reverse(LogistList.name, request=request),
+                'by_category': reverse(LogistByCategoryList.name, request=request),
+                'by_address': reverse(LogistByAddressList.name, request=request),
+            },
+            'hyzmatlar': {
+                'list': reverse(ServiceMainList.name, request=request),
+                'added': reverse(ServiceAddList.name, request=request),
+                'create': reverse(ServiceList.name, request=request),
+                'by_category': reverse(ServiceByCategoryList.name, request=request),
+                'by_address': reverse(ServiceByAddressList.name, request=request),
+            },
+            'ulaglar': {
+                'list': reverse(VehicleMainList.name, request=request),
+                'added': reverse(VehicleAddList.name, request=request),
+                'create': reverse(VehicleList.name, request=request),
+                'by_category': reverse(VehicleByCategoryList.name, request=request),
+                'by_address': reverse(VehicleByAddressList.name, request=request),
+            },
+            'ätiýaçlyk_şaýlar': {
+                'list': reverse(SparePartMainList.name, request=request),
+                'added': reverse(SparePartAddList.name, request=request),
+                'create': reverse(SparePartList.name, request=request),
+                'by_category': reverse(SparePartByCategoryList.name, request=request),
+                'by_address': reverse(SparePartByAddressList.name, request=request),
+            },
         })
