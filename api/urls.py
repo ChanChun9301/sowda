@@ -1,31 +1,30 @@
+# urls.py (täzelenen)
+
 from django.urls import path, re_path
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from graphene_django.views import GraphQLView
-from .schema import schema
 
-from .views import (
+from .views import *
+from .views_serializers import (
     # Auth
-    UserLoginView, UserLogoutView, UserPost, UserProdDetailView,
+    UserLoginView, UserLogoutView, UserProd, UserProdDetailView,
     # Address
     AddressList,
     # Categories
     LogistCategoryList, ServiceCategoryList, VehicleCategoryList, SparePartCategoryList,
     # Logistika
     LogistMainList, LogistAddList, LogistList, LogistDetail,
-    LogistByCategoryList, LogistByAddressList,
     # Hyzmatlar
     ServiceMainList, ServiceAddList, ServiceList, ServiceDetail,
-    ServiceByCategoryList, ServiceByAddressList,
     # Ulaglar
     VehicleMainList, VehicleAddList, VehicleList, VehicleDetail,
-    VehicleByCategoryList, VehicleByAddressList,
     # Ätiýaçlyk şaýlar
     SparePartMainList, SparePartAddList, SparePartList, SparePartDetail,
-    SparePartByCategoryList, SparePartByAddressList,
     # API Root
-    ApiRoot
+    ApiRoot,
+    # <<< YENI GOŞULAN >>>
+    CarouselImageList, CarouselImageDetail  # <--- GOŞULDY
 )
 from .functions import confirm_sms
 
@@ -35,7 +34,7 @@ schema_view = get_schema_view(
     openapi.Info(
         title="Siziň API",
         default_version='v1',
-        description="Logistika, Hyzmatlar, Ulaglar, Ätiýaçlyk şaýlar üçin API",
+        description="Logistika, Hyzmatlar, Ulaglar, Ätiýaçlyk şaýlar we Karusel üçin API",
         contact=openapi.Contact(email="support@mysal.com"),
         license=openapi.License(name="MIT"),
     ),
@@ -53,7 +52,7 @@ urlpatterns = [
     # ====================== AUTH ======================
     path('login/', UserLoginView.as_view(), name='user-login'),
     path('logout/', UserLogoutView.as_view(), name='user-logout'),
-    path('register/', UserPost.as_view(), name='userprod-list'),
+    path('register/', UserProd, name='userprod-list'),
     path('confirm-sms/', confirm_sms, name='confirm-sms'),
     path('user-check/', UserProdDetailView.as_view(), name='user-check'),
 
@@ -71,40 +70,35 @@ urlpatterns = [
     path('logistika/added/', LogistAddList.as_view(), name='logist-added'),
     path('logistika/create/', LogistList.as_view(), name='logist-create'),
     path('logistika/<int:pk>/', LogistDetail.as_view(), name='logist-detail'),
-    path('logistika/by-category/', LogistByCategoryList.as_view(), name='logist-by-category'),
-    path('logistika/by-address/', LogistByAddressList.as_view(), name='logist-by-address'),
 
     # ====================== HYZMATLAR ======================
     path('hyzmatlar/', ServiceMainList.as_view(), name='service-main'),
     path('hyzmatlar/added/', ServiceAddList.as_view(), name='service-added'),
     path('hyzmatlar/create/', ServiceList.as_view(), name='service-create'),
     path('hyzmatlar/<int:pk>/', ServiceDetail.as_view(), name='service-detail'),
-    path('hyzmatlar/by-category/', ServiceByCategoryList.as_view(), name='service-by-category'),
-    path('hyzmatlar/by-address/', ServiceByAddressList.as_view(), name='service-by-address'),
 
     # ====================== ULAGLAR ======================
-    path('ulaglar/', VehicleMainList.as_view(), name='vehicle-main'),
-    path('ulaglar/added/', VehicleAddList.as_view(), name='vehicle-added'),
-    path('ulaglar/create/', VehicleList.as_view(), name='vehicle-create'),
-    path('ulaglar/<int:pk>/', VehicleDetail.as_view(), name='vehicle-detail'),
-    path('ulaglar/by-category/', VehicleByCategoryList.as_view(), name='vehicle-by-category'),
-    path('ulaglar/by-address/', VehicleByAddressList.as_view(), name='vehicle-by-address'),
+    path('car/', VehicleMainList.as_view(), name='vehicle-main'),
+    path('car/added/', VehicleAddList.as_view(), name='vehicle-added'),
+    path('car/create/', VehicleList.as_view(), name='vehicle-create'),
+    path('car/<int:pk>/', VehicleDetail.as_view(), name='vehicle-detail'),
 
     # ====================== ÄTIÝAÇLYK ŞAÝLARY ======================
-    path('atiyaclik-saylar/', SparePartMainList.as_view(), name='sparepart-main'),
-    path('atiyaclik-saylar/added/', SparePartAddList.as_view(), name='sparepart-added'),
-    path('atiyaclik-saylar/create/', SparePartList.as_view(), name='sparepart-create'),
-    path('atiyaclik-saylar/<int:pk>/', SparePartDetail.as_view(), name='sparepart-detail'),
-    path('atiyaclik-saylar/by-category/', SparePartByCategoryList.as_view(), name='sparepart-by-category'),
-    path('atiyaclik-saylar/by-address/', SparePartByAddressList.as_view(), name='sparepart-by-address'),
+    path('spares/', SparePartMainList.as_view(), name='sparepart-main'),
+    path('spares/added/', SparePartAddList.as_view(), name='sparepart-added'),
+    path('spares/create/', SparePartList.as_view(), name='sparepart-create'),
+    path('spares/<int:pk>/', SparePartDetail.as_view(), name='sparepart-detail'),
+
+    # ====================== CAROUSEL (YENI GOŞULAN) ======================
+    path('carousel/', CarouselImageList.as_view(), name='carousel-list'),
+    path('carousel/<int:pk>/', CarouselImageDetail.as_view(), name='carousel-detail'),
 
     # ====================== SWAGGER & REDOC ======================
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 
-    path('graphql/', GraphQLView.as_view(graphiql=True, schema=schema), name='graphql'),
-    
+    # ====================== WEB (Frontend) ======================
     path('app/', index, name='index'),
     path('app/login/', web_login, name='web-login'),
 
@@ -117,10 +111,9 @@ urlpatterns = [
     path('app/ulaglar/', vehicle_list, name='vehicle-list'),
     path('app/ulaglar/<int:pk>/', vehicle_detail, name='vehicle-detail'),
 
-    path('app/atiyaclik-saylar/', sparepart_list, name='sparepart-list'),
-    path('app/atiyaclik-saylar/<int:pk>/', sparepart_detail, name='sparepart-detail'),
+    path('app/spares/', sparepart_list, name='sparepart-list'),
+    path('app/spares/<int:pk>/', sparepart_detail, name='sparepart-detail'),
 
-    path('send-sms/', send_sms_request, name='send-sms'),
     path('confirm-sms/', confirm_sms, name='confirm-sms'),
 
 ]

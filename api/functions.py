@@ -9,7 +9,7 @@ from rest_framework import status
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
-from .models import UserProd, AuditLog
+from .models import UserProd
 
 
 # ====================== SMS TASSYKLAMA ======================
@@ -95,25 +95,6 @@ def verify_password(plain_password: str, hashed_password: bytes) -> bool:
     """Paroly barlaýar"""
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password)
 
-
-# ====================== AUDIT LOG ======================
-@receiver(post_save, sender=UserProd)
-def log_userprod_save(sender, instance, created, **kwargs):
-    action = "Döredildi" if created else "Üýtgedildi"
-    AuditLog.objects.create(
-        user=instance.author,
-        action=f"Ulanyjy {action}",
-        model="UserProd"
-    )
-
-
-@receiver(post_delete, sender=UserProd)
-def log_userprod_delete(sender, instance, **kwargs):
-    AuditLog.objects.create(
-        user=instance.author,
-        action="Pozuldy",
-        model="UserProd"
-    )
 
 
 # ====================== USER CREATED SIGNAL ======================

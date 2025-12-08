@@ -6,8 +6,28 @@ from mptt.models import MPTTModel, TreeForeignKey
 from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
-from datetime import datetime
+from datetime import datetime,timezone, timedelta
 import os
+
+def logist_upload_path(instance, filename):
+    return get_upload_path(instance, filename, 'products/logist')
+
+def service_upload_path(instance, filename):
+    return get_upload_path(instance, filename, 'products/service')
+
+def vehicle_upload_path(instance, filename):
+    return get_upload_path(instance, filename, 'products/vehicle')
+
+def sparepart_upload_path(instance, filename):
+    return get_upload_path(instance, filename, 'products/sparepart')
+
+def carousel_upload_path(instance, filename):
+    return get_upload_path(instance, filename, 'products/carousel')
+
+# Multi-suratlar üçin
+def multi_image_upload_path(instance, filename):
+    base = f'products/multi/{instance.__class__.__name__.lower()}'
+    return get_upload_path(instance, filename, base)
 
 class UserProd(models.Model):
     author = models.CharField(max_length=8, unique=True)
@@ -26,8 +46,8 @@ class UserProd(models.Model):
 def get_upload_path(instance, filename, base_dir):
     """Dinamiki ýol: base_dir/yyyyMMdd_HHmm_name/filename"""
     now = datetime.now().strftime("%Y%m%d_%H%M")
-    name = instance.name or "unknown"
-    return f'{base_dir}/{now}_{name}/{filename}'
+    # name = instance.filename or "unknown"
+    return f'{base_dir}/{now}_{filename}/{filename}'
 
 
 def generate_thumbnail(image_field, size=(300, 300)):
@@ -65,10 +85,6 @@ class BaseProduct(models.Model):
     address = models.ForeignKey('Address', on_delete=models.CASCADE, verbose_name=_('Salgy'))
     author = models.CharField(max_length=255, null=True, blank=True, verbose_name=_('Awtor'))
     phone = models.CharField(max_length=20, null=True, blank=True, verbose_name=_('Telefon'))
-    img = models.ImageField(
-        upload_to=lambda i, f: get_upload_path(i, f, 'products'),
-        null=True, blank=True, verbose_name=_('Surat')
-    )
     text = RichTextField(null=True, blank=True, verbose_name=_('Giňişleýin'))
     price = models.DecimalField(
         max_digits=12, decimal_places=2, null=True, blank=True, verbose_name=_('Bahasy')
@@ -92,7 +108,7 @@ class BaseProduct(models.Model):
 
 class BaseImage(models.Model):
     img = models.ImageField(
-        upload_to=lambda i, f: get_upload_path(i, f, 'products/multi'),
+        upload_to=multi_image_upload_path,  # lambda däl!
         verbose_name=_('Surat')
     )
     created = models.DateTimeField(auto_now_add=True)
@@ -162,7 +178,10 @@ class Logist(BaseProduct):
     vip = models.BooleanField(default=False, verbose_name=_('VIP'))
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name=_("Eni"))
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name=_("Uzynlygy"))
-
+    img = models.ImageField(
+        upload_to=logist_upload_path,  # lambda däl!
+        null=True, blank=True
+    )
     class Meta(BaseProduct.Meta):
         verbose_name = _("Logistika")
         verbose_name_plural = _("Logistikalar")
@@ -175,7 +194,10 @@ class ImageLogist(BaseImage):
 # 2. Hyzmatlar
 class Service(BaseProduct):
     category = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE, verbose_name=_('Kategoriýa'))
-
+    img = models.ImageField(
+        upload_to=service_upload_path,
+        null=True, blank=True
+    )
     class Meta(BaseProduct.Meta):
         verbose_name = _("Hyzmat")
         verbose_name_plural = _("Hyzmatlar")
@@ -194,7 +216,10 @@ class Vehicle(BaseProduct):
     )
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name=_("Eni"))
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name=_("Uzynlygy"))
-
+    img = models.ImageField(
+        upload_to=vehicle_upload_path,
+        null=True, blank=True
+    )
     class Meta(BaseProduct.Meta):
         verbose_name = _("Ulag")
         verbose_name_plural = _("Ulaglar")
@@ -207,7 +232,10 @@ class ImageVehicle(BaseImage):
 # 4. Awtoulaglaryň ätiýaçlyk şaýlary (Zapçastlar)
 class SparePart(BaseProduct):
     category = models.ForeignKey(SparePartCategory, on_delete=models.CASCADE, verbose_name=_('Kategoriýa'))
-    
+    img = models.ImageField(
+        upload_to=sparepart_upload_path,
+        null=True, blank=True
+    )
     # Ätiýaçlyk şaýlaryna mahsus meýdanlar
     part_number = models.CharField(max_length=100, null=True, blank=True, verbose_name=_('Zapçast belgisi'))
     brand = models.CharField(max_length=100, null=True, blank=True, verbose_name=_('Marka'))
@@ -224,3 +252,56 @@ class SparePart(BaseProduct):
         verbose_name=_('Ýagdaýy')
     )
     compatibility = models.TextField
+
+# ====================== CAROUSEL IMAGE (for main page or ads) ======================
+
+class CarouselImage(models.Model):
+    name = models.CharField(max_length=150, blank=True, null=True, verbose_name=_('Ady'))
+    description = RichTextField(blank=True, null=True, verbose_name=_('Giňişleýin'))
+    img = models.ImageField(
+        upload_to=carousel_upload_path,  # lambda däl!
+        verbose_name=_('Surat')
+    )
+    link = models.URLField(max_length=500, blank=True, null=True, verbose_name=_('Baglanyşyk'))
+    is_active = models.BooleanField(default=True, verbose_name=_('Işjeň'))
+    order = models.PositiveIntegerField(default=0, verbose_name=_('Tertip'))
+    created = models.DateTimeField(auto_now_add=True, verbose_name=_('Döredilen wagty'))
+
+    class Meta:
+        verbose_name = _("Karusel suraty")
+        verbose_name_plural = _("Karusel suratlary")
+        ordering = ['order', '-created']
+
+    def __str__(self):
+        return self.name or f"Carousel #{self.pk}"
+
+    def save(self, *args, **kwargs):
+        if self.img and not self._state.adding:
+            # Eger surat üýtgedilse, thumbnail döret
+            old = CarouselImage.objects.filter(pk=self.pk).first()
+            if old and old.img != self.img:
+                self.img = self.generate_compressed_image(self.img)
+        super().save(*args, **kwargs)
+
+    def generate_compressed_image(self, image_field):
+        """Suraty gysga we optimizirläp gaýtaryp berýär (WEBP ýa-da JPEG)"""
+        img = Image.open(image_field).convert('RGB')
+        img_io = BytesIO()
+        img.save(img_io, 'WEBP', quality=80, method=6)
+        filename = os.path.splitext(os.path.basename(image_field.name))[0] + '.webp'
+        return ContentFile(img_io.getvalue(), name=filename)
+
+
+# ====================== ÄTIÝAÇLYK ŞAÝ SURATLARY (SparePart) ======================
+
+class ImageSparePart(BaseImage):
+    sparepart = models.ForeignKey(
+        SparePart, 
+        on_delete=models.CASCADE, 
+        related_name='images', 
+        verbose_name=_('Ätiýaçlyk şaý')
+    )
+
+    class Meta(BaseImage.Meta):
+        verbose_name = _("Ätiýaçlyk şaý suraty")
+        verbose_name_plural = _("Ätiýaçlyk şaý suratlary")

@@ -66,15 +66,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'sowda.wsgi.application'
 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
-    }
-}
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django_redis.cache.RedisCache",
+#         "LOCATION": "redis://127.0.0.1:6379/1",
+#         "OPTIONS": {
+#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#         }
+#     }
+# }
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'  # Mysal üçin Gmail SMTP
 EMAIL_PORT = 587
@@ -84,9 +84,9 @@ EMAIL_HOST_PASSWORD = 'siziň_gmail_parolyňyz'
 
 INSTALLED_APPS += ['graphene_django']
 
-GRAPHENE = {
-    'SCHEMA': 'api.schema.schema',
-}
+# GRAPHENE = {
+#     'SCHEMA': 'api.schema.schema',
+# }
 
 DATABASES = {
     'default': {
@@ -96,14 +96,14 @@ DATABASES = {
 }
 
 CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    "http://localhost:8361",
-    "http://127.0.0.1:8361",
-    # "http://192.168.0.103:8000",
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:8000",
+#     "http://127.0.0.1:8000",
+#     "http://localhost:8361",
+#     "http://127.0.0.1:8361",
+#     # "http://192.168.0.103:8000",
     
-]
+# ]
 
 INTERNAL_IPS = [
     # ...

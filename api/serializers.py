@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import (
     Address, LogistCategory, ServiceCategory, VehicleCategory, SparePartCategory,
     Logist, Service, Vehicle, SparePart,
-    ImageLogist, ImageService, ImageVehicle, ImageSparePart
+    ImageLogist, ImageService, ImageVehicle, ImageSparePart,CarouselImage
 )
 
 
@@ -377,3 +377,26 @@ class SparePartSerializer(serializers.ModelSerializer):
             ImageSparePart.objects.create(sparepart=sparepart, img=img)
 
         return sparepart
+    
+# serializers.py (goşmaça)
+
+# serializers.py
+class CarouselImageSerializer(serializers.ModelSerializer):
+    img_url = serializers.SerializerMethodField()
+    absolute_link = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CarouselImage
+        fields = ('pk','name','img_url', 'link', 'is_active', 'order', 'absolute_link')
+
+    def get_img_url(self, obj):
+        request = self.context.get('request')
+        if obj.img and hasattr(obj.img, 'url'):
+            return request.build_absolute_uri(obj.img.url) if request else obj.img.url
+        return None
+
+    def get_absolute_link(self, obj):
+        request = self.context.get('request')
+        if obj.link:
+            return request.build_absolute_uri(obj.link) if request else obj.link
+        return None

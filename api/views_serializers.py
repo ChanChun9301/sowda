@@ -1,4 +1,5 @@
 from rest_framework import generics, filters, status, pagination
+from rest_framework_simplejwt.backends import TokenBackend
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
@@ -12,8 +13,8 @@ from rest_framework_simplejwt.settings import api_settings
 from .models import (
     Address, LogistCategory, ServiceCategory, VehicleCategory, SparePartCategory,
     Logist, Service, Vehicle, SparePart,
-    ImageLogist, ImageService, ImageVehicle, ImageSparePart,
-    UserProd, AuditLog
+    ImageLogist, ImageService, ImageVehicle, ImageSparePart,CarouselImage,
+    UserProd
 )
 from .serializers import (
     AddressSerializer,
@@ -21,8 +22,8 @@ from .serializers import (
     LogistListSerializer, LogistDetailSerializer, LogistSerializer,
     ServiceListSerializer, ServiceDetailSerializer, ServiceSerializer,
     VehicleListSerializer, VehicleDetailSerializer, VehicleSerializer,
-    SparePartListSerializer, SparePartDetailSerializer, SparePartSerializer,
-    UserSerializer
+    SparePartListSerializer, SparePartDetailSerializer, SparePartSerializer,CarouselImageSerializer
+    
 )
 
 
@@ -33,25 +34,27 @@ class MyPagination(pagination.PageNumberPagination):
     max_page_size = 1000
 
 
-# ====================== AUTH LOGGING ======================
-@receiver(post_save, sender=UserProd)
-def log_userprod_save(sender, instance, created, **kwargs):
-    action = "Created" if created else "Updated"
-    AuditLog.objects.create(user=instance.author, action=f"UserProd {action}")
-
-@receiver(post_delete, sender=UserProd)
-def log_userprod_delete(sender, instance, **kwargs):
-    AuditLog.objects.create(user=instance.author, action="UserProd Deleted")
-
 
 # ====================== AUTH VIEWS ======================
-class UserPost(generics.ListCreateAPIView):
-    queryset = UserProd.objects.all()
-    serializer_class = UserSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['author']
-    name = 'userprod-list'
+# class UserPost(generics.ListCreateAPIView):
+#     queryset = UserProd.objects.all()
+#     serializer_class = UserSerializer
+#     filter_backends = [filters.SearchFilter]
+#     search_fields = ['author']
+#     name = 'userprod-list'
 
+class CarouselImageList(generics.ListAPIView):
+    """Esasy sahypa üçin işjeň karusel suratlary"""
+    queryset = CarouselImage.objects.filter(is_active=True).order_by('order', '-created')
+    serializer_class = CarouselImageSerializer
+    pagination_class = None  # Karusel üçin pagination gerek däl
+
+
+class CarouselImageDetail(generics.RetrieveAPIView):
+    """Aýratyn karusel (admin ýa-da test üçin)"""
+    queryset = CarouselImage.objects.all()
+    serializer_class = CarouselImageSerializer
+    lookup_field = 'pk'
 
 class UserLoginView(APIView):
     def post(self, request):
@@ -88,18 +91,19 @@ class UserProdDetailView(APIView):
     def get(self, request):
         author = request.GET.get('author')
         token = request.GET.get('token')
+        print('!!!',token)
 
         try:
-            decoded = jwt.decode(token, api_settings.SIGNING_KEY, algorithms=["HS256"])
-            user_id = decoded.get('user_id')
+            # Декодируем access token
+            valid_data = TokenBackend(algorithm='HS256').decode(token, verify=True)
+            user_id = valid_data.get('user_id')
             user = UserProd.objects.get(id=user_id)
 
             if user.author == author:
                 return Response({'token': True})
             return Response({'token': False, 'detail': 'Telefon nomeri gabat gelmedi'})
-        except (jwt.ExpiredSignatureError, jwt.DecodeError, UserProd.DoesNotExist):
-            return Response({'token': False, 'detail': 'Token nädogry ýa-da ulanyjy ýok'})
-
+        except Exception as e:
+            return Response({'token': False, 'detail': str(e)})
 
 # ====================== ADDRESS ======================
 class AddressList(generics.ListAPIView):
@@ -164,14 +168,24 @@ class LogistMainList(ProductListView):
         nirden = self.request.query_params.get('nirden')
         where = self.request.query_params.get('where')
         bring = self.request.query_params.get('bring')
-        category = self.request.query_params.get('category')
+        category = self.request.query_params.get('category')  # "2,5"
+        address = self.request.query_params.get('address')    # "5,7"
 
-        if nirden: queryset = queryset.filter(nirden__icontains=nirden)
-        if where: queryset = queryset.filter(where__icontains=where)
-        if bring is not None: queryset = queryset.filter(bring=bring.lower() == 'true')
-        if category: queryset = queryset.filter(category=int(category))
+        if nirden:
+            queryset = queryset.filter(nirden__icontains=nirden)
+        if where:
+            queryset = queryset.filter(where__icontains=where)
+        if bring is not None:
+            queryset = queryset.filter(bring=bring.lower() == 'true')
+        if category:
+            category_ids = [int(x) for x in category.split(',')]
+            queryset = queryset.filter(category__in=category_ids)
+        if address:
+            address_ids = [int(x) for x in address.split(',')]
+            queryset = queryset.filter(address__in=address_ids)
 
         return queryset
+
 
 
 class LogistAddList(ProductListView):
@@ -196,20 +210,6 @@ class LogistDetail(generics.RetrieveDestroyAPIView):
     queryset = Logist.objects.all()
     serializer_class = LogistDetailSerializer
     name = 'logist-detail'
-
-
-class LogistByCategoryList(ProductListView):
-    queryset = Logist.objects.all()
-    serializer_class = LogistListSerializer
-    search_fields = ['category__name']
-    name = 'logist-by-category'
-
-
-class LogistByAddressList(ProductListView):
-    queryset = Logist.objects.all()
-    serializer_class = LogistListSerializer
-    search_fields = ['address__name']
-    name = 'logist-by-address'
 
 
 # ====================== HYZMATLAR ======================
@@ -241,21 +241,6 @@ class ServiceDetail(generics.RetrieveAPIView):
     queryset = Service.objects.all()
     serializer_class = ServiceDetailSerializer
     name = 'service-detail'
-
-
-class ServiceByCategoryList(ProductListView):
-    queryset = Service.objects.all()
-    serializer_class = ServiceListSerializer
-    search_fields = ['category__name']
-    name = 'service-by-category'
-
-
-class ServiceByAddressList(ProductListView):
-    queryset = Service.objects.all()
-    serializer_class = ServiceListSerializer
-    search_fields = ['address__name']
-    name = 'service-by-address'
-
 
 # ====================== ULAGLAR ======================
 class VehicleMainList(ProductListView):
@@ -294,21 +279,6 @@ class VehicleDetail(generics.RetrieveDestroyAPIView):
     serializer_class = VehicleDetailSerializer
     name = 'vehicle-detail'
 
-
-class VehicleByCategoryList(ProductListView):
-    queryset = Vehicle.objects.all()
-    shuffle_class = VehicleListSerializer
-    search_fields = ['category__name']
-    name = 'vehicle-by-category'
-
-
-class VehicleByAddressList(ProductListView):
-    queryset = Vehicle.objects.all()
-    serializer_class = VehicleListSerializer
-    search_fields = ['address__name']
-    name = 'vehicle-by-address'
-
-
 # ====================== ÄTIÝAÇLYK ŞAÝLARY ======================
 class SparePartMainList(ProductListView):
     queryset = SparePart.objects.all()
@@ -339,21 +309,6 @@ class SparePartDetail(generics.RetrieveDestroyAPIView):
     serializer_class = SparePartDetailSerializer
     name = 'sparepart-detail'
 
-
-class SparePartByCategoryList(ProductListView):
-    queryset = SparePart.objects.all()
-    serializer_class = SparePartListSerializer
-    search_fields = ['category__name']
-    name = 'sparepart-by-category'
-
-
-class SparePartByAddressList(ProductListView):
-    queryset = SparePart.objects.all()
-    serializer_class = SparePartListSerializer
-    search_fields = ['address__name']
-    name = 'sparepart-by-address'
-
-
 # ====================== API ROOT ======================
 class ApiRoot(APIView):
     name = 'api-root'
@@ -363,7 +318,7 @@ class ApiRoot(APIView):
             'auth': {
                 'login': reverse('user-login', request=request),
                 'logout': reverse('user-logout', request=request),
-                'register': reverse(UserPost.name, request=request),
+                # 'register': reverse(UserPost.name, request=request),
             },
             'addresses': reverse(AddressList.name, request=request),
             'categories': {
@@ -376,28 +331,28 @@ class ApiRoot(APIView):
                 'list': reverse(LogistMainList.name, request=request),
                 'added': reverse(LogistAddList.name, request=request),
                 'create': reverse(LogistList.name, request=request),
-                'by_category': reverse(LogistByCategoryList.name, request=request),
-                'by_address': reverse(LogistByAddressList.name, request=request),
+                # 'by_category': reverse(LogistByCategoryList.name, request=request),
+                # 'by_address': reverse(LogistByAddressList.name, request=request),
             },
             'hyzmatlar': {
                 'list': reverse(ServiceMainList.name, request=request),
                 'added': reverse(ServiceAddList.name, request=request),
                 'create': reverse(ServiceList.name, request=request),
-                'by_category': reverse(ServiceByCategoryList.name, request=request),
-                'by_address': reverse(ServiceByAddressList.name, request=request),
+                # 'by_category': reverse(ServiceByCategoryList.name, request=request),
+                # 'by_address': reverse(ServiceByAddressList.name, request=request),
             },
             'ulaglar': {
                 'list': reverse(VehicleMainList.name, request=request),
                 'added': reverse(VehicleAddList.name, request=request),
                 'create': reverse(VehicleList.name, request=request),
-                'by_category': reverse(VehicleByCategoryList.name, request=request),
-                'by_address': reverse(VehicleByAddressList.name, request=request),
+                # 'by_category': reverse(VehicleByCategoryList.name, request=request),
+                # 'by_address': reverse(VehicleByAddressList.name, request=request),
             },
             'ätiýaçlyk_şaýlar': {
                 'list': reverse(SparePartMainList.name, request=request),
                 'added': reverse(SparePartAddList.name, request=request),
                 'create': reverse(SparePartList.name, request=request),
-                'by_category': reverse(SparePartByCategoryList.name, request=request),
-                'by_address': reverse(SparePartByAddressList.name, request=request),
+                # 'by_category': reverse(SparePartByCategoryList.name, request=request),
+                # 'by_address': reverse(SparePartByAddressList.name, request=request),
             },
         })

@@ -6,7 +6,7 @@ from .models import (
     Address, LogistCategory, ServiceCategory, VehicleCategory, SparePartCategory,
     Logist, Service, Vehicle, SparePart,
     ImageLogist, ImageService, ImageVehicle, ImageSparePart,
-    UserProd, CarouselImage, AuditLog
+    UserProd, CarouselImage
 )
 
 
@@ -35,7 +35,6 @@ main_image_preview.short_description = 'Esasy surat'
 
 # ====================== INLINE SURATLAR ======================
 class BaseImageInline(admin.TabularInline):
-    """Umumy surat inline – her model üçin ulanyň"""
     extra = 1
     fields = ('img', 'image_thumb')
     readonly_fields = ('image_thumb',)
@@ -83,38 +82,53 @@ class AddressAdmin(admin.ModelAdmin):
 
 
 # ====================== KATEGORIÝALAR (agajy) ======================
-class CategoryInline(admin.TabularInline):
-    model = None  # Dinamiki
+class BaseCategoryInline(admin.TabularInline):
     fk_name = 'parent'
     extra = 1
     fields = ('name',)
 
 
+# Her kategoriýa üçin aýratyn inline
+class LogistCategoryInline(BaseCategoryInline):
+    model = LogistCategory
+
+
+class ServiceCategoryInline(BaseCategoryInline):
+    model = ServiceCategory
+
+
+class VehicleCategoryInline(BaseCategoryInline):
+    model = VehicleCategory
+
+
+class SparePartCategoryInline(BaseCategoryInline):
+    model = SparePartCategory
+
+
 class BaseCategoryAdmin(admin.ModelAdmin):
     list_display = ('name', 'parent')
     search_fields = ('name',)
-    inlines = [CategoryInline]
     list_per_page = 30
 
 
 @admin.register(LogistCategory)
 class LogistCategoryAdmin(BaseCategoryAdmin):
-    pass
+    inlines = [LogistCategoryInline]
 
 
 @admin.register(ServiceCategory)
 class ServiceCategoryAdmin(BaseCategoryAdmin):
-    pass
+    inlines = [ServiceCategoryInline]
 
 
 @admin.register(VehicleCategory)
 class VehicleCategoryAdmin(BaseCategoryAdmin):
-    pass
+    inlines = [VehicleCategoryInline]
 
 
 @admin.register(SparePartCategory)
 class SparePartCategoryAdmin(BaseCategoryAdmin):
-    pass
+    inlines = [SparePartCategoryInline]
 
 
 # ====================== LOGISTIKA ======================
@@ -137,11 +151,9 @@ class LogistAdmin(admin.ModelAdmin):
         }),
         ('Logistika maglumatlary', {
             'fields': ('nirden', 'where', 'last_date', 'bring', 'address'),
-            'description': 'Nireden, nire, haçan, nädip'
         }),
         ('Mazmun we surat', {
-            'fields': ('text', 'img', 'main_image_form_preview'),
-            'description': 'Esasy mazmun we surat'
+            'fields': ('text', 'img', 'main_image_form_preview')
         }),
         ('Koordinatalar', {
             'fields': ('latitude', 'longitude'),
@@ -248,43 +260,43 @@ class SparePartAdmin(admin.ModelAdmin):
         'name', 'author', 'category', 'brand', 'model', 'year',
         'condition', 'price', 'checked', main_image_preview
     )
-    list_display_links = ('name', 'author')
-    list_filter = ('checked', 'category', 'brand', 'condition', 'year', 'created')
-    search_fields = ('name', 'author', 'brand', 'model', 'part_number', 'text')
-    readonly_fields = ('created', 'main_image_form_preview')
-    inlines = [ImageSparePartInline]
-    list_per_page = 25
+    # list_display_links = ('name', 'author')
+    # list_filter = ('checked', 'category', 'brand', 'condition', 'year', 'created')
+    # search_fields = ('name', 'author', 'brand', 'model', 'part_number', 'text')
+    # readonly_fields = ('created', 'main_image_form_preview')
+    # inlines = [ImageSparePartInline]
+    # list_per_page = 25
 
-    fieldsets = (
-        (None, {
-            'fields': ('name', 'category', 'author', 'price', 'checked')
-        }),
-        ('Şaý maglumatlary', {
-            'fields': ('part_number', 'brand', 'model', 'year', 'condition', 'compatibility')
-        }),
-        ('Mazmun we surat', {
-            'fields': ('text', 'img', 'main_image_form_preview')
-        }),
-        ('Ýerleşýän ýeri', {
-            'fields': ('address',),
-        }),
-        ('Wagt', {
-            'fields': ('created',),
-            'classes': ('collapse',)
-        }),
-    )
+    # fieldsets = (
+    #     (None, {
+    #         'fields': ('name', 'category', 'author', 'price', 'checked')
+    #     }),
+    #     ('Şaý maglumatlary', {
+    #         'fields': ('part_number', 'brand', 'model', 'year', 'condition', 'compatibility')
+    #     }),
+    #     ('Mazmun we surat', {
+    #         'fields': ('text', 'img', 'main_image_form_preview')
+    #     }),
+    #     ('Ýerleşýän ýeri', {
+    #         'fields': ('address',),
+    #     }),
+    #     ('Wagt', {
+    #         'fields': ('created',),
+    #         'classes': ('collapse',)
+    #     }),
+    # )
 
-    def main_image_form_preview(self, obj):
-        if obj.img:
-            return format_html(
-                '<img src="{}" width="300" height="auto" style="border: 1px solid #ddd; border-radius: 6px;" />',
-                obj.img.url
-            )
-        return "Esasy surat ýok"
-    main_image_form_preview.short_description = 'Häzirki surat'
+    # def main_image_form_preview(self, obj):
+    #     if obj.img:
+    #         return format_html(
+    #             '<img src="{}" width="300" height="auto" style="border: 1px solid #ddd; border-radius: 6px;" />',
+    #             obj.img.url
+    #         )
+    #     return "Esasy surat ýok"
+    # main_image_form_preview.short_description = 'Häzirki surat'
 
 
-# ====================== GALAN MODELLER ======================
+# ====================== USERPROD ======================
 @admin.register(UserProd)
 class UserProdAdmin(admin.ModelAdmin):
     list_display = ('author', 'checked', 'sms_sent_at')
@@ -294,23 +306,14 @@ class UserProdAdmin(admin.ModelAdmin):
     list_per_page = 30
 
 
+# ====================== CAROUSEL IMAGE ======================
 @admin.register(CarouselImage)
 class CarouselImageAdmin(admin.ModelAdmin):
-    list_display = ('name', image_preview)
-    search_fields = ('name',)
+    list_display = ('link','is_active', 'order', image_preview)
+    list_editable = ('is_active', 'order')
+    search_fields = ('description',)
     list_per_page = 20
-
-
-@admin.register(AuditLog)
-class AuditLogAdmin(admin.ModelAdmin):
-    list_display = ('user', 'action', 'model', 'timestamp')
-    list_filter = ('action', 'model', 'timestamp')
-    search_fields = ('user', 'action')
-    readonly_fields = ('user', 'action', 'model', 'timestamp')
-    list_per_page = 30
-
-    def has_add_permission(self, request):
-        return False  # Pozup bilmeýär
+    ordering = ('order', '-created')
 
 
 # ====================== ADMIN BAŞLYGY ======================
