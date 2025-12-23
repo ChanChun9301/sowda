@@ -150,7 +150,7 @@ class LogistAdmin(admin.ModelAdmin):
             'fields': ('name', 'category', 'author', 'phone', 'price', 'checked', 'vip')
         }),
         ('Logistika maglumatlary', {
-            'fields': ('nirden', 'where', 'last_date', 'bring', 'address'),
+            'fields': ('nirden', 'where', 'last_date', 'bring','is_client' ,'address'),
         }),
         ('Mazmun we surat', {
             'fields': ('text', 'img', 'main_image_form_preview')
@@ -211,6 +211,56 @@ class ServiceAdmin(admin.ModelAdmin):
         return "Esasy surat ýok"
     main_image_form_preview.short_description = 'Häzirki surat'
 
+# ====================== TOPPRODUCT ======================
+from django.contrib import admin
+from django.utils.html import format_html
+from .models import TopProduct,ImageTopProduct # Импортируй свою модель и связанные картинки
+
+class ImageTopProductInline(admin.TabularInline):
+    model = ImageTopProduct
+    extra = 1
+    readonly_fields = ('image_preview',)
+
+    def image_preview(self, obj):
+        if obj.img:
+            return format_html(
+                '<img src="{}" width="150" height="auto" style="border:1px solid #ddd; border-radius:4px;" />',
+                obj.img.url
+            )
+        return "No Image"
+    image_preview.short_description = "Сурет"
+
+@admin.register(TopProduct)
+class TopProductAdmin(admin.ModelAdmin):
+    list_display = ('name', 'author', 'category', 'price', 'checked', 'main_image_form_preview')
+    list_display_links = ('name', 'author')
+    list_filter = ('checked', 'category', 'created')
+    search_fields = ('name', 'author', 'price', 'text')
+    readonly_fields = ('created', 'main_image_form_preview')
+    inlines = [ImageTopProductInline]
+    list_per_page = 25
+
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'category', 'author', 'price', 'checked','address')
+        }),
+        ('Описание и изображение', {
+            'fields': ('text', 'img', 'main_image_form_preview')
+        }),
+        ('Время', {
+            'fields': ('created',),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def main_image_form_preview(self, obj):
+        if obj.img:
+            return format_html(
+                '<img src="{}" width="300" height="auto" style="border: 1px solid #ddd; border-radius: 6px;" />',
+                obj.img.url
+            )
+        return "Основное изображение отсутствует"
+    main_image_form_preview.short_description = 'Основное изображение'
 
 # ====================== ULAGLAR ======================
 @admin.register(Vehicle)

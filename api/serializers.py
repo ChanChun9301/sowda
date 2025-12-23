@@ -2,7 +2,8 @@ from rest_framework import serializers
 from .models import (
     Address, LogistCategory, ServiceCategory, VehicleCategory, SparePartCategory,
     Logist, Service, Vehicle, SparePart,
-    ImageLogist, ImageService, ImageVehicle, ImageSparePart,CarouselImage
+    ImageLogist, ImageService, ImageVehicle, ImageSparePart,CarouselImage,
+    ImageTopProduct,TopProduct
 )
 
 
@@ -400,3 +401,56 @@ class CarouselImageSerializer(serializers.ModelSerializer):
         if obj.link:
             return request.build_absolute_uri(obj.link) if request else obj.link
         return None
+    
+
+class ImageTopProductSerializer(DynamicImageSerializer):
+    class Meta:
+        model = ImageTopProduct
+        fields = ('pk', 'url')
+
+class TopProductListSerializer(BaseProductListSerializer):
+    class Meta:
+        model = TopProduct
+        fields = (
+            'pk', 'name', 'text', 'phone', 'price', 'created', 'img', 'checked',
+            'category', 'address_name', 'thumbnail_url'
+        )
+
+class TopProductDetailSerializer(BaseProductDetailSerializer):
+    images = ImageTopProductSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = TopProduct
+        fields = (
+            'pk', 'name', 'address_name', 'text', 'category', 'phone', 'price',
+            'created', 'img', 'checked', 'images', 'thumbnail_url'
+        )
+
+class TopProductSerializer(serializers.ModelSerializer):
+    address = serializers.IntegerField(write_only=True)
+    images = serializers.ListField(
+        child=serializers.ImageField(), write_only=True, required=False
+    )
+
+    class Meta:
+        model = TopProduct
+        fields = (
+            'pk', 'name', 'author', 'text', 'phone', 'price', 'img',
+            'created', 'checked', 'category', 'address', 'images'
+        )
+
+    def create(self, validated_data):
+        address_id = validated_data.pop('address')
+        images_data = validated_data.pop('images', [])
+
+        address = Address.objects.get(pk=address_id)
+
+        top_product = TopProduct.objects.create(
+            address=address,
+            **validated_data
+        )
+
+        for img in images_data:
+            ImageTopProduct.objects.create(top_product=top_product, img=img)
+
+        return top_product

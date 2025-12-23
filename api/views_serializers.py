@@ -14,7 +14,7 @@ from .models import (
     Address, LogistCategory, ServiceCategory, VehicleCategory, SparePartCategory,
     Logist, Service, Vehicle, SparePart,
     ImageLogist, ImageService, ImageVehicle, ImageSparePart,CarouselImage,
-    UserProd
+    UserProd,TopProduct
 )
 from .serializers import (
     AddressSerializer,
@@ -22,8 +22,8 @@ from .serializers import (
     LogistListSerializer, LogistDetailSerializer, LogistSerializer,
     ServiceListSerializer, ServiceDetailSerializer, ServiceSerializer,
     VehicleListSerializer, VehicleDetailSerializer, VehicleSerializer,
-    SparePartListSerializer, SparePartDetailSerializer, SparePartSerializer,CarouselImageSerializer
-    
+    SparePartListSerializer, SparePartDetailSerializer, SparePartSerializer,CarouselImageSerializer,
+    TopProductSerializer,TopProductDetailSerializer,TopProductListSerializer,
 )
 
 
@@ -59,20 +59,38 @@ class CarouselImageDetail(generics.RetrieveAPIView):
 class UserLoginView(APIView):
     def post(self, request):
         author = request.data.get('author')
+        phone_model = request.data.get('phone_model')
+
+        print('!!!', request.data)
+
         if not author or len(author) != 8 or not author.isdigit():
             return Response(
                 {'error': 'Telefon belgisi nädogry.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        user, created = UserProd.objects.get_or_create(author=author)
-        refresh = RefreshToken.for_user(user)
+        if not phone_model:
+            return Response(
+                {'error': 'Telefon modeli ýok.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        return Response({
-            'access': str(refresh.access_token),
-            'refresh': str(refresh),
-            'user': author
-        }, status=status.HTTP_200_OK)
+        user = UserProd.objects.filter(author=author).first()
+
+        if user:
+            if user.phone_model != phone_model:
+                return Response(
+                    {'error': 'Bu nomer başga telefonda ulanyldy.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        else:
+            user = UserProd.objects.create(
+                author=author,
+                phone_model=phone_model
+            )
+
+        return Response({'user': author}, status=status.HTTP_200_OK)
+
 
 
 class UserLogoutView(APIView):
@@ -90,16 +108,11 @@ class UserLogoutView(APIView):
 class UserProdDetailView(APIView):
     def get(self, request):
         author = request.GET.get('author')
-        token = request.GET.get('token')
-        print('!!!',token)
 
         try:
-            # Декодируем access token
-            valid_data = TokenBackend(algorithm='HS256').decode(token, verify=True)
-            user_id = valid_data.get('user_id')
-            user = UserProd.objects.get(id=user_id)
+            user = UserProd.objects.get(author=author)
 
-            if user.author == author:
+            if user.author == author and user.checked == True:
                 return Response({'token': True})
             return Response({'token': False, 'detail': 'Telefon nomeri gabat gelmedi'})
         except Exception as e:
@@ -157,6 +170,35 @@ class ProductCreateListView(generics.ListCreateAPIView):
     pagination_class = MyPagination
 
 
+# ====================== Top ======================
+class TopProductMainList(ProductListView):
+    queryset = TopProduct.objects.all()
+    serializer_class = TopProductListSerializer
+    name = 'top-product-main'
+
+class TopProductAddList(ProductListView):
+    queryset = TopProduct.objects.all()
+    serializer_class = TopProductListSerializer
+    search_fields = ['author']
+    name = 'top-product-added'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        author = self.request.query_params.get('author')
+        return queryset.filter(author=author) if author else queryset.none()
+
+class TopProductList(ProductCreateListView):
+    queryset = TopProduct.objects.all()
+    serializer_class = TopProductSerializer
+    name = 'top-product-create'
+
+class TopProductDetail(generics.RetrieveAPIView):
+    queryset = TopProduct.objects.all()
+    serializer_class = TopProductDetailSerializer
+    name = 'top-product-detail'
+
+
+
 # ====================== LOGISTIKA ======================
 class LogistMainList(ProductListView):
     queryset = Logist.objects.all()
@@ -165,12 +207,14 @@ class LogistMainList(ProductListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        is_client=self.request.query_params.get('is_client')
         nirden = self.request.query_params.get('nirden')
         where = self.request.query_params.get('where')
         bring = self.request.query_params.get('bring')
         category = self.request.query_params.get('category')  # "2,5"
         address = self.request.query_params.get('address')    # "5,7"
-
+        if is_client:
+            queryset = queryset.filter(is_client=is_client)
         if nirden:
             queryset = queryset.filter(nirden__icontains=nirden)
         if where:
@@ -185,7 +229,6 @@ class LogistMainList(ProductListView):
             queryset = queryset.filter(address__in=address_ids)
 
         return queryset
-
 
 
 class LogistAddList(ProductListView):

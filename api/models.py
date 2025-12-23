@@ -31,6 +31,7 @@ def multi_image_upload_path(instance, filename):
 
 class UserProd(models.Model):
     author = models.CharField(max_length=8, unique=True)
+    phone_model = models.CharField(max_length=8,null=True,blank=True)
     checked = models.BooleanField(default=False)
     sms_sent_at = models.DateTimeField(null=True, blank=True)
     # sms_code = models.CharField(max_length=6, null=True, blank=True)  # eger gerek bolsa
@@ -175,8 +176,9 @@ class Logist(BaseProduct):
     nirden = models.CharField(max_length=50, null=True, blank=True, verbose_name=_('Nireden'))
     last_date = models.DateField(null=True, blank=True, verbose_name=_('Soňky sene'))
     bring = models.BooleanField(default=False, verbose_name=_('Getir'))
-    vip = models.BooleanField(default=False, verbose_name=_('VIP'))
-    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name=_("Eni"))
+    vip=models.BooleanField(default=False, verbose_name=_('VIP'))
+    is_client=models.BooleanField(default=False, verbose_name=_('Musderi'))
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name=_("Ini"))
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name=_("Uzynlygy"))
     img = models.ImageField(
         upload_to=logist_upload_path,  # lambda däl!
@@ -305,3 +307,31 @@ class ImageSparePart(BaseImage):
     class Meta(BaseImage.Meta):
         verbose_name = _("Ätiýaçlyk şaý suraty")
         verbose_name_plural = _("Ätiýaçlyk şaý suratlary")
+
+
+# ====================== Top haryt (Top) ======================
+
+def top_product_upload_path(instance, filename):
+    return f'top_products/{instance.id}/{filename}'
+
+class TopProduct(BaseProduct):
+    category = models.CharField(max_length=100, null=True, blank=True, verbose_name=_('Kategoriya'))
+    img = models.ImageField(
+        upload_to=top_product_upload_path,
+        null=True,
+        blank=True
+    )
+
+    class Meta(BaseProduct.Meta):
+        verbose_name = _("Top Haryt")
+        verbose_name_plural = _("Top Harytlar")
+
+# ====================== Top haryt SURATLARY (SparePart) ======================
+
+class ImageTopProduct(BaseImage):
+    top_product = models.ForeignKey(
+        TopProduct,
+        on_delete=models.CASCADE,
+        related_name='images',
+        verbose_name=_('Suratlar')
+    )

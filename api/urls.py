@@ -19,6 +19,8 @@ from .views_serializers import (
     ServiceMainList, ServiceAddList, ServiceList, ServiceDetail,
     # Ulaglar
     VehicleMainList, VehicleAddList, VehicleList, VehicleDetail,
+    # Top
+    TopProductMainList,TopProductAddList,TopProductList,TopProductDetail,
     # Ätiýaçlyk şaýlar
     SparePartMainList, SparePartAddList, SparePartList, SparePartDetail,
     # API Root
@@ -76,6 +78,13 @@ urlpatterns = [
     path('hyzmatlar/added/', ServiceAddList.as_view(), name='service-added'),
     path('hyzmatlar/create/', ServiceList.as_view(), name='service-create'),
     path('hyzmatlar/<int:pk>/', ServiceDetail.as_view(), name='service-detail'),
+
+    # ====================== TOP HARYTLAR ======================
+    path('top-products/', TopProductMainList.as_view(), name='top-product-main'),
+    path('top-products/added/', TopProductAddList.as_view(), name='top-product-added'),
+    path('top-products/create/', TopProductList.as_view(), name='top-product-create'),
+    path('top-products/<int:pk>/', TopProductDetail.as_view(), name='top-product-detail'),
+
 
     # ====================== ULAGLAR ======================
     path('car/', VehicleMainList.as_view(), name='vehicle-main'),
