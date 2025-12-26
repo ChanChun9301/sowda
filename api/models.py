@@ -96,12 +96,13 @@ class BaseProduct(models.Model):
 
     class Meta:
         abstract = True
-        ordering = ['-created', 'checked']
+        ordering = ['checked', '-created']
 
     def save(self, *args, **kwargs):
-        if self.img and not self.thumbnail:
+        if hasattr(self, 'img') and self.img and not self.thumbnail:
             self.thumbnail = generate_thumbnail(self.img)
         super().save(*args, **kwargs)
+
 
     def __str__(self):
         return self.name or _('Ady ýok')
@@ -119,10 +120,10 @@ class BaseImage(models.Model):
         ordering = ['-created']
 
     def __str__(self):
-        try:
+        if self.img:
             return f'{settings.HOSTNAME}{self.img.url}'
-        except:
-            return _('Surat ýok')
+        return _('Surat ýok')
+
 
 
 # ====================== ADDRESS ======================
@@ -184,6 +185,15 @@ class Logist(BaseProduct):
         upload_to=logist_upload_path,  # lambda däl!
         null=True, blank=True
     )
+    
+    def is_vip(self):
+        return self.vip
+
+    def location(self):
+        if self.latitude and self.longitude:
+            return (float(self.latitude), float(self.longitude))
+        return None
+        
     class Meta(BaseProduct.Meta):
         verbose_name = _("Logistika")
         verbose_name_plural = _("Logistikalar")
