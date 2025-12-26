@@ -261,6 +261,20 @@ class ServiceMainList(ProductListView):
     serializer_class = ServiceListSerializer
     name = 'service-main'
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        category = self.request.query_params.get('category')  # "2,5"
+        address = self.request.query_params.get('address')    # "5,7"
+
+        if category:
+            category_ids = [int(x) for x in category.split(',')]
+            queryset = queryset.filter(category__in=category_ids)
+        if address:
+            address_ids = [int(x) for x in address.split(',')]
+            queryset = queryset.filter(address__in=address_ids)
+
+        return queryset
+
 
 class ServiceAddList(ProductListView):
     queryset = Service.objects.all()
@@ -294,8 +308,19 @@ class VehicleMainList(ProductListView):
     def get_queryset(self):
         queryset = super().get_queryset()
         current_addr = self.request.query_params.get('current_addr')
+        category = self.request.query_params.get('category')  # "2,5"
+        address = self.request.query_params.get('address')    # "5,7"
+        
         if current_addr:
             queryset = queryset.filter(current_addr__name__icontains=current_addr)
+
+        if category:
+            category_ids = [int(x) for x in category.split(',')]
+            queryset = queryset.filter(category__in=category_ids)
+        if address:
+            address_ids = [int(x) for x in address.split(',')]
+            queryset = queryset.filter(address__in=address_ids)
+            
         return queryset
 
 
@@ -327,6 +352,20 @@ class SparePartMainList(ProductListView):
     queryset = SparePart.objects.all()
     serializer_class = SparePartListSerializer
     name = 'sparepart-main'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        category = self.request.query_params.get('category')  # "2,5"
+        address = self.request.query_params.get('address')    # "5,7"
+
+        if category:
+            category_ids = [int(x) for x in category.split(',')]
+            queryset = queryset.filter(category__in=category_ids)
+        if address:
+            address_ids = [int(x) for x in address.split(',')]
+            queryset = queryset.filter(address__in=address_ids)
+
+        return queryset
 
 
 class SparePartAddList(ProductListView):
