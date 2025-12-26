@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 # Настройка Django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "project_name.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "sowda.settings")
 django.setup()
 
 from app.models import UserProd
