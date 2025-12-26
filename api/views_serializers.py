@@ -35,6 +35,52 @@ class MyPagination(pagination.PageNumberPagination):
 
 
 
+class ProductListView(generics.ListAPIView):
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['checked', 'category', 'address', 'is_client']
+    search_fields = ['name']
+
+class BaseProductMainList(ProductListView):
+    category_param = 'category'
+    address_param = 'address'
+    author_param = 'author'
+
+    # Extra filters dictionary subclass-da üýtgetmek üçin
+    extra_filters = []
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        # Common filters
+        category = self.request.query_params.get(self.category_param)
+        address = self.request.query_params.get(self.address_param)
+        author = self.request.query_params.get(self.author_param)
+
+        if category:
+            ids = [int(x) for x in category.split(',')]
+            queryset = queryset.filter(category__in=ids)
+
+        if address:
+            ids = [int(x) for x in address.split(',')]
+            queryset = queryset.filter(address__in=ids)
+
+        if author:
+            queryset = queryset.filter(author=author)
+
+        # Extra filters: subclass üsti bilen ulanylyp biler
+        for filter_name in getattr(self, 'extra_filters', []):
+            value = self.request.query_params.get(filter_name)
+            if value is not None:
+                queryset = self.apply_extra_filter(queryset, filter_name, value)
+
+        return queryset
+
+    def apply_extra_filter(self, queryset, filter_name, value):
+        """Subclasses override edip filter logikasyny kesgitläp biler"""
+        return queryset
+
+
+
 # ====================== AUTH VIEWS ======================
 # class UserPost(generics.ListCreateAPIView):
 #     queryset = UserProd.objects.all()
@@ -200,34 +246,22 @@ class TopProductDetail(generics.RetrieveAPIView):
 
 
 # ====================== LOGISTIKA ======================
-class LogistMainList(ProductListView):
+class LogistMainList(BaseProductMainList):
     queryset = Logist.objects.all()
     serializer_class = LogistListSerializer
     name = 'logist-main'
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        is_client=self.request.query_params.get('is_client')
-        nirden = self.request.query_params.get('nirden')
-        where = self.request.query_params.get('where')
-        bring = self.request.query_params.get('bring')
-        category = self.request.query_params.get('category')  # "2,5"
-        address = self.request.query_params.get('address')    # "5,7"
-        if is_client:
-            queryset = queryset.filter(is_client=is_client)
-        if nirden:
-            queryset = queryset.filter(nirden__icontains=nirden)
-        if where:
-            queryset = queryset.filter(where__icontains=where)
-        if bring is not None:
-            queryset = queryset.filter(bring=bring.lower() == 'true')
-        if category:
-            category_ids = [int(x) for x in category.split(',')]
-            queryset = queryset.filter(category__in=category_ids)
-        if address:
-            address_ids = [int(x) for x in address.split(',')]
-            queryset = queryset.filter(address__in=address_ids)
+    extra_filters = ['is_client', 'nirden', 'where', 'bring']
 
+    def apply_extra_filter(self, queryset, filter_name, value):
+        if filter_name == 'is_client':
+            return queryset.filter(is_client=value.lower() in ['true', '1'])
+        elif filter_name == 'nirden':
+            return queryset.filter(nirden__icontains=value)
+        elif filter_name == 'where':
+            return queryset.filter(where__icontains=value)
+        elif filter_name == 'bring':
+            return queryset.filter(bring=value.lower() in ['true', '1'])
         return queryset
 
 
@@ -256,24 +290,10 @@ class LogistDetail(generics.RetrieveDestroyAPIView):
 
 
 # ====================== HYZMATLAR ======================
-class ServiceMainList(ProductListView):
+class ServiceMainList(BaseProductMainList):
     queryset = Service.objects.all()
     serializer_class = ServiceListSerializer
     name = 'service-main'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        category = self.request.query_params.get('category')  # "2,5"
-        address = self.request.query_params.get('address')    # "5,7"
-
-        if category:
-            category_ids = [int(x) for x in category.split(',')]
-            queryset = queryset.filter(category__in=category_ids)
-        if address:
-            address_ids = [int(x) for x in address.split(',')]
-            queryset = queryset.filter(address__in=address_ids)
-
-        return queryset
 
 
 class ServiceAddList(ProductListView):
@@ -300,7 +320,7 @@ class ServiceDetail(generics.RetrieveAPIView):
     name = 'service-detail'
 
 # ====================== ULAGLAR ======================
-class VehicleMainList(ProductListView):
+class VehicleMainList(BaseProductMainList):
     queryset = Vehicle.objects.all()
     serializer_class = VehicleListSerializer
     name = 'vehicle-main'
@@ -308,18 +328,9 @@ class VehicleMainList(ProductListView):
     def get_queryset(self):
         queryset = super().get_queryset()
         current_addr = self.request.query_params.get('current_addr')
-        category = self.request.query_params.get('category')  # "2,5"
-        address = self.request.query_params.get('address')    # "5,7"
         
         if current_addr:
             queryset = queryset.filter(current_addr__name__icontains=current_addr)
-
-        if category:
-            category_ids = [int(x) for x in category.split(',')]
-            queryset = queryset.filter(category__in=category_ids)
-        if address:
-            address_ids = [int(x) for x in address.split(',')]
-            queryset = queryset.filter(address__in=address_ids)
             
         return queryset
 
@@ -348,24 +359,10 @@ class VehicleDetail(generics.RetrieveDestroyAPIView):
     name = 'vehicle-detail'
 
 # ====================== ÄTIÝAÇLYK ŞAÝLARY ======================
-class SparePartMainList(ProductListView):
+class SparePartMainList(BaseProductMainList):
     queryset = SparePart.objects.all()
     serializer_class = SparePartListSerializer
     name = 'sparepart-main'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        category = self.request.query_params.get('category')  # "2,5"
-        address = self.request.query_params.get('address')    # "5,7"
-
-        if category:
-            category_ids = [int(x) for x in category.split(',')]
-            queryset = queryset.filter(category__in=category_ids)
-        if address:
-            address_ids = [int(x) for x in address.split(',')]
-            queryset = queryset.filter(address__in=address_ids)
-
-        return queryset
 
 
 class SparePartAddList(ProductListView):
