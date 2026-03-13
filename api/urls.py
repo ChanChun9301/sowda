@@ -14,15 +14,15 @@ from .views_serializers import (
     # Categories
     LogistCategoryList, ServiceCategoryList, VehicleCategoryList, SparePartCategoryList,
     # Logistika
-    LogistMainList, LogistAddList, LogistList, LogistDetail,
+    LogistMainList, LogistAddList, LogistList, LogistDetail,LogistUpdateAPIView,
     # Hyzmatlar
-    ServiceMainList, ServiceAddList, ServiceList, ServiceDetail,
+    ServiceMainList, ServiceAddList, ServiceList, ServiceDetail,ServiceUpdateAPIView,
     # Ulaglar
-    VehicleMainList, VehicleAddList, VehicleList, VehicleDetail,
+    VehicleMainList, VehicleAddList, VehicleList, VehicleDetail,VehicleUpdateAPIView,
     # Top
     TopProductMainList,TopProductAddList,TopProductList,TopProductDetail,
     # Ätiýaçlyk şaýlar
-    SparePartMainList, SparePartAddList, SparePartList, SparePartDetail,
+    SparePartMainList, SparePartAddList, SparePartList, SparePartDetail,SparePartUpdateAPIView,
     # API Root
     ApiRoot,
     # <<< YENI GOŞULAN >>>
@@ -72,12 +72,14 @@ urlpatterns = [
     path('logistika/added/', LogistAddList.as_view(), name='logist-added'),
     path('logistika/create/', LogistList.as_view(), name='logist-create'),
     path('logistika/<int:pk>/', LogistDetail.as_view(), name='logist-detail'),
+    path('logistika/update/<int:pk>/', LogistUpdateAPIView.as_view(), name='logist-update'),
 
     # ====================== HYZMATLAR ======================
     path('hyzmatlar/', ServiceMainList.as_view(), name='service-main'),
     path('hyzmatlar/added/', ServiceAddList.as_view(), name='service-added'),
     path('hyzmatlar/create/', ServiceList.as_view(), name='service-create'),
     path('hyzmatlar/<int:pk>/', ServiceDetail.as_view(), name='service-detail'),
+    path('hyzmatlar/update/<int:pk>/', ServiceUpdateAPIView.as_view(), name='service-update'),
 
     # ====================== TOP HARYTLAR ======================
     path('top-products/', TopProductMainList.as_view(), name='top-product-main'),
@@ -91,12 +93,14 @@ urlpatterns = [
     path('car/added/', VehicleAddList.as_view(), name='vehicle-added'),
     path('car/create/', VehicleList.as_view(), name='vehicle-create'),
     path('car/<int:pk>/', VehicleDetail.as_view(), name='vehicle-detail'),
+    path('car/update/<int:pk>/', VehicleUpdateAPIView.as_view(), name='vehicle-update'),
 
     # ====================== ÄTIÝAÇLYK ŞAÝLARY ======================
     path('spares/', SparePartMainList.as_view(), name='sparepart-main'),
     path('spares/added/', SparePartAddList.as_view(), name='sparepart-added'),
     path('spares/create/', SparePartList.as_view(), name='sparepart-create'),
     path('spares/<int:pk>/', SparePartDetail.as_view(), name='sparepart-detail'),
+    path('spares/update/<int:pk>/', SparePartUpdateAPIView.as_view(), name='spare-update'),
 
     # ====================== CAROUSEL (YENI GOŞULAN) ======================
     path('carousel/', CarouselImageList.as_view(), name='carousel-list'),

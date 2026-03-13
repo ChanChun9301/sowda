@@ -307,12 +307,12 @@ class VehicleAdmin(admin.ModelAdmin):
 @admin.register(SparePart)
 class SparePartAdmin(admin.ModelAdmin):
     list_display = (
-        'name', 'author', 'category', 'brand', 'model', 'year',
+        'name', 'author', 'category',  'year',
         'condition', 'price', 'checked', main_image_preview
     )
     # list_display_links = ('name', 'author')
-    # list_filter = ('checked', 'category', 'brand', 'condition', 'year', 'created')
-    # search_fields = ('name', 'author', 'brand', 'model', 'part_number', 'text')
+    # list_filter = ('checked', 'category', 'condition', 'year', 'created')
+    # search_fields = ('name', 'author',  'part_number', 'text')
     # readonly_fields = ('created', 'main_image_form_preview')
     # inlines = [ImageSparePartInline]
     # list_per_page = 25
@@ -322,7 +322,7 @@ class SparePartAdmin(admin.ModelAdmin):
     #         'fields': ('name', 'category', 'author', 'price', 'checked')
     #     }),
     #     ('Şaý maglumatlary', {
-    #         'fields': ('part_number', 'brand', 'model', 'year', 'condition', 'compatibility')
+    #         'fields': ('part_number',  'year', 'condition', 'compatibility')
     #     }),
     #     ('Mazmun we surat', {
     #         'fields': ('text', 'img', 'main_image_form_preview')

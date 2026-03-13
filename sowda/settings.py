@@ -97,10 +97,10 @@ DATABASES = {
 
 CORS_ALLOW_ALL_ORIGINS = True
 # CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:8000",
-#     "http://127.0.0.1:8000",
-#     "http://localhost:8361",
-#     "http://127.0.0.1:8361",
+#     # "http://localhost:8000",
+#     # "http://127.0.0.1:8000",
+#     "http://localhost:53289",
+#     # "http://127.0.0.1:8361",
 #     # "http://192.168.0.103:8000",
     
 # ]

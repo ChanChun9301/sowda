@@ -89,6 +89,8 @@ class BaseProductListSerializer(serializers.ModelSerializer):
 
 class BaseProductDetailSerializer(BaseProductListSerializer):
     images = serializers.SerializerMethodField()
+    
+    
 
     def get_images(self, obj):
         # Image serializer map
@@ -160,14 +162,26 @@ class LogistListSerializer(BaseProductListSerializer):
             'bring', 'vip', 'latitude', 'longitude', 'thumbnail_url'
         )
 
+class ImageDetailLogistSerializer(serializers.ModelSerializer):
+    url = serializers.ImageField(source='img') # 'image' meýdançasyny 'url' ady bilen ugratmak üçin
+
+    class Meta:
+        model = ImageLogist
+        fields = ('pk', 'url')
+
+
 
 class LogistDetailSerializer(BaseProductDetailSerializer):
+    category_id = serializers.CharField(source='category.id', read_only=True)
+    address_id = serializers.CharField(source='address.id', read_only=True)
+    images = ImageDetailLogistSerializer(many=True, read_only=True)
+
     class Meta:
         model = Logist
         fields = (
-            'pk', 'name', 'address_name', 'text', 'category_name', 'phone', 'price',
+            'pk', 'name', 'address_name', 'text','category_id','address_id', 'category_name', 'phone', 'price',
             'created', 'img', 'checked', 'where', 'nirden', 'last_date', 'bring',
-            'vip', 'latitude', 'longitude', 'images', 'thumbnail_url'
+            'vip', 'latitude', 'longitude', 'images', 'thumbnail_url','is_client'
         )
 
 
@@ -218,11 +232,21 @@ class ServiceListSerializer(BaseProductListSerializer):
         )
 
 
+class ImageDetailServiceSerializer(serializers.ModelSerializer):
+    url = serializers.ImageField(source='img') # 'image' meýdançasyny 'url' ady bilen ugratmak üçin
+
+    class Meta:
+        model = ImageService
+        fields = ('pk', 'url')
+
 class ServiceDetailSerializer(BaseProductDetailSerializer):
+    category_id = serializers.CharField(source='category.id', read_only=True)
+    address_id = serializers.CharField(source='address.id', read_only=True)
+    images = ImageDetailServiceSerializer(many=True, read_only=True)
     class Meta:
         model = Service
         fields = (
-            'pk', 'name', 'address_name', 'text', 'category_name', 'phone', 'price',
+            'pk', 'name', 'category_id','address_id','address_name', 'text', 'category_name', 'phone', 'price',
             'created', 'img', 'checked', 'images', 'thumbnail_url'
         )
 
@@ -258,32 +282,45 @@ class ServiceSerializer(serializers.ModelSerializer, BaseProductCreateMixin):
         self.create_images(service, images_data)
         return service
 
-
 # ====================== VEHICLE ======================
 
 class VehicleListSerializer(BaseProductListSerializer):
     current_address_name = serializers.CharField(source='current_addr.name', read_only=True)
+    text = serializers.CharField(source='description', read_only=True)
 
     class Meta:
         model = Vehicle
         fields = (
-            'pk', 'name', 'text', 'phone', 'price', 'created', 'img', 'checked',
-            'category_name', 'address_name', 'current_address_name',
-            'latitude', 'longitude', 'thumbnail_url'
+            'pk', 'name',  'year', 'price', 'mileage', 'text',
+            'fuel_type', 'img', 'created', 'checked', 'category_name', 
+            'address_name', 'current_address_name', 'thumbnail_url'
         )
+
+class ImageDetailVehicleSerializer(serializers.ModelSerializer):
+    url = serializers.ImageField(source='img') # 'image' meýdançasyny 'url' ady bilen ugratmak üçin
+
+    class Meta:
+        model = ImageVehicle
+        fields = ('pk', 'url')
 
 
 class VehicleDetailSerializer(BaseProductDetailSerializer):
+    category_id = serializers.CharField(source='category.id', read_only=True)
+    address_id = serializers.CharField(source='address.id', read_only=True)
     current_address_name = serializers.CharField(source='current_addr.name', read_only=True)
+    gearbox_display = serializers.CharField(source='get_gearbox_display', read_only=True)
+    fuel_type_display = serializers.CharField(source='get_fuel_type_display', read_only=True)
+    images = ImageDetailVehicleSerializer(many=True, read_only=True)
 
     class Meta:
         model = Vehicle
         fields = (
-            'pk', 'name', 'address_name', 'text', 'category_name', 'phone', 'price',
-            'created', 'img', 'checked', 'current_address_name',
-            'latitude', 'longitude', 'images', 'thumbnail_url'
+            'pk', 'name',  'year', 'color', 'engine_volume',
+            'mileage', 'gearbox', 'gearbox_display', 'fuel_type', 'fuel_type_display',
+            'price', 'vin_code', 'description', 'address_name', 'category_name', 
+            'phone', 'created', 'img', 'checked', 'current_address_name',
+            'latitude', 'longitude', 'images', 'thumbnail_url','category_id','address_id'
         )
-
 
 class VehicleSerializer(serializers.ModelSerializer, BaseProductCreateMixin):
     category = serializers.IntegerField(write_only=True)
@@ -292,31 +329,36 @@ class VehicleSerializer(serializers.ModelSerializer, BaseProductCreateMixin):
     images = serializers.ListField(
         child=serializers.ImageField(), write_only=True, required=False
     )
-    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
-    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
-
+    
     image_model = ImageVehicle
     fk_name = 'vehicle'
 
     class Meta:
         model = Vehicle
         fields = (
-            'pk', 'name', 'author', 'text', 'phone', 'price', 'img', 'created', 'checked',
+            'pk', 'name', 'year', 'color', 'engine_volume',
+            'mileage', 'gearbox', 'fuel_type', 'price', 'vin_code', 'description',
+            'author', 'phone', 'img', 'created', 'checked',
             'category', 'address', 'current_addr', 'latitude', 'longitude', 'images'
         )
 
     def create(self, validated_data):
+        print(validated_data)
         category_id = validated_data.pop('category')
         address_id = validated_data.pop('address')
         current_addr_id = validated_data.pop('current_addr')
         images_data = validated_data.pop('images', [])
 
+        # Get objects or 404
         category = VehicleCategory.objects.get(pk=category_id)
         address = Address.objects.get(pk=address_id)
         current_addr = Address.objects.get(pk=current_addr_id)
 
         vehicle = Vehicle.objects.create(
-            category=category, address=address, current_addr=current_addr, **validated_data
+            category=category, 
+            address=address, 
+            current_addr=current_addr, 
+            **validated_data
         )
         self.create_images(vehicle, images_data)
         return vehicle
@@ -328,17 +370,27 @@ class SparePartListSerializer(BaseProductListSerializer):
     class Meta:
         model = SparePart
         fields = (
-            'pk', 'name', 'text', 'phone', 'price', 'created', 'img', 'checked',
-            'category_name', 'address_name', 'thumbnail_url'
+            'pk', 'name', 'text', 'phone', 'price', 'created', 'img', 'checked','text',
+            'category_name', 'address_name', 'thumbnail_url','compatibility','part_number','year','condition'
         )
 
+class ImageDetailSpareSerializer(serializers.ModelSerializer):
+    url = serializers.ImageField(source='img') # 'image' meýdançasyny 'url' ady bilen ugratmak üçin
+
+    class Meta:
+        model = ImageSparePart
+        fields = ('pk', 'url')
 
 class SparePartDetailSerializer(BaseProductDetailSerializer):
+    category_id = serializers.CharField(source='category.id', read_only=True)
+    address_id = serializers.CharField(source='address.id', read_only=True)
+    images = ImageDetailSpareSerializer(many=True, read_only=True)
+
     class Meta:
         model = SparePart
         fields = (
-            'pk', 'name', 'address_name', 'text', 'category_name', 'phone', 'price',
-            'created', 'img', 'checked', 'images', 'thumbnail_url'
+            'pk', 'name','category_id','address_id', 'address_name', 'text', 'category_name', 'phone', 'price',
+            'created', 'img', 'checked', 'images', 'thumbnail_url','compatibility','part_number','year','condition'
         )
 
 
@@ -387,11 +439,11 @@ class TopProductListSerializer(BaseProductListSerializer):
 
 class TopProductDetailSerializer(BaseProductDetailSerializer):
     images = ImageTopProductSerializer(many=True, read_only=True)
-
+    category_name = serializers.CharField(source='category', read_only=True)
     class Meta:
         model = TopProduct
         fields = (
-            'pk', 'name', 'address_name', 'text', 'category', 'phone', 'price',
+            'pk', 'name', 'address_name', 'text', 'category_name', 'phone', 'price',
             'created', 'img', 'checked', 'images', 'thumbnail_url'
         )
 

@@ -221,6 +221,33 @@ class ImageService(BaseImage):
 
 # 3. Ulaglar
 class Vehicle(BaseProduct):
+    
+    # Tehniki aýratynlyklary
+    year = models.PositiveIntegerField(verbose_name=_("Ýyly"))
+    color = models.CharField(max_length=50, verbose_name=_("Reňki"))
+    engine_volume = models.DecimalField(max_digits=3, decimal_places=1, verbose_name=_("Motor göwrümi"))
+    mileage = models.PositiveIntegerField(verbose_name=_("Ýörelen ýoly (km)"))
+    
+    # Geçiriji we Ýangyç
+    GEARBOX_CHOICES = (
+        ('manual', _('Mehanika')),
+        ('automatic', _('Awtomat')),
+        ('hybrid', _('Gibrid')),
+    )
+    gearbox = models.CharField(max_length=20, choices=GEARBOX_CHOICES, verbose_name=_("Geçiriji guty (Korobka)"))
+    
+    FUEL_CHOICES = (
+        ('gasoline', _('Benzin')),
+        ('diesel', _('Dizel')),
+        ('electric', _('Elektrik')),
+        ('hybrid', _('Gibrid')),
+    )
+    fuel_type = models.CharField(max_length=20, choices=FUEL_CHOICES, verbose_name=_("Ýangyç görnüşi"))
+
+    # Goşmaça maglumatlar
+    price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name=_("Bahasy"))
+    vin_code = models.CharField(max_length=17, unique=True, null=True, blank=True, verbose_name=_("VIN kody"))
+    description = models.TextField(null=True, blank=True, verbose_name=_("Goşmaça maglumat"))
     category = models.ForeignKey(VehicleCategory, on_delete=models.CASCADE, verbose_name=_('Kategoriýa'))
     current_addr = models.ForeignKey(
         Address, on_delete=models.CASCADE, related_name='current_vehicles',
@@ -250,8 +277,6 @@ class SparePart(BaseProduct):
     )
     # Ätiýaçlyk şaýlaryna mahsus meýdanlar
     part_number = models.CharField(max_length=100, null=True, blank=True, verbose_name=_('Zapçast belgisi'))
-    brand = models.CharField(max_length=100, null=True, blank=True, verbose_name=_('Marka'))
-    model = models.CharField(max_length=100, null=True, blank=True, verbose_name=_('Model'))
     year = models.PositiveIntegerField(null=True, blank=True, verbose_name=_('Ýyl'))
     condition = models.CharField(
         max_length=20,
@@ -263,7 +288,7 @@ class SparePart(BaseProduct):
         default='used',
         verbose_name=_('Ýagdaýy')
     )
-    compatibility = models.TextField
+    compatibility = models.TextField(blank=True,null=True)
 
 # ====================== CAROUSEL IMAGE (for main page or ads) ======================
 
